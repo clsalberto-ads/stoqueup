@@ -1,12 +1,19 @@
 import { db } from "@/db"
 import { productionTasks, products } from "@/db/schema"
-import { eq, desc } from "drizzle-orm"
+import { desc, eq } from "drizzle-orm"
 import { ProductionCard } from "@/components/production/production-card"
+import { CreateTaskModal } from "@/components/production/create-task-modal"
+import { auth } from "@/lib/auth"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
 import { Factory } from "lucide-react"
 
 export default async function ProductionPage() {
+    const session = await auth.api.getSession();
+    const isAdmin = session?.user.role === "admin";
+
+    const allProducts = await db.select().from(products);
+    
     const tasks = await db
         .select({
             id: productionTasks.id,
@@ -32,6 +39,7 @@ export default async function ProductionPage() {
                         Acompanhe as ordens de reposição e gerencie o fluxo de produção.
                     </p>
                 </div>
+                {isAdmin && <CreateTaskModal products={allProducts} />}
             </div>
 
             <Tabs defaultValue="active" className="w-full">

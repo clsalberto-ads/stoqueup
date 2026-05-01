@@ -6,8 +6,10 @@ import { products } from "@/db/schema"
 import { Card, CardContent } from "@/components/ui/card"
 import { ProductCard } from "@/components/products/product-card"
 
-export default async function ProductsPage() {
   const allProducts = await db.select().from(products)
+  
+  // D-04: Ocultar da lista de vendas se currentStock < minParaVenda
+  const availableProducts = allProducts.filter(p => p.currentStock >= p.minParaVenda)
 
   return (
     <div className="space-y-8">
@@ -23,7 +25,7 @@ export default async function ProductsPage() {
         </Button>
       </div>
 
-      {allProducts.length === 0 ? (
+      {availableProducts.length === 0 ? (
         <Card className="border-dashed border-2 bg-slate-50">
           <CardContent className="flex flex-col items-center justify-center py-20 text-center">
             <div className="h-20 w-20 rounded-full bg-slate-200 flex items-center justify-center mb-4">
@@ -40,7 +42,7 @@ export default async function ProductsPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {allProducts.map((product) => (
+          {availableProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
