@@ -18,10 +18,8 @@ export default async function ProductsPage() {
             Gerencie seu catálogo de produtos e visualize o status atual do estoque.
           </p>
         </div>
-        <Button asChild className="bg-blue-600 hover:bg-blue-700">
-          <Link href="/dashboard/products/new">
-            <Plus className="mr-2 h-4 w-4" /> Novo Produto
-          </Link>
+        <Button className="bg-blue-600 hover:bg-blue-700" render={<Link href="/dashboard/products/new" />}>
+          <Plus className="mr-2 h-4 w-4" /> Novo Produto
         </Button>
       </div>
 
@@ -35,8 +33,8 @@ export default async function ProductsPage() {
             <p className="text-slate-500 max-w-sm mt-2">
               Comece adicionando seu primeiro produto ao catálogo para gerenciar o estoque.
             </p>
-            <Button asChild variant="outline" className="mt-6">
-              <Link href="/dashboard/products/new">Adicionar Primeiro Produto</Link>
+            <Button variant="outline" className="mt-6" render={<Link href="/dashboard/products/new" />}>
+              Adicionar Primeiro Produto
             </Button>
           </CardContent>
         </Card>
