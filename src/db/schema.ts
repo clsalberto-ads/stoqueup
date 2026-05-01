@@ -77,3 +77,14 @@ export const inventoryLogs = pgTable("inventory_logs", {
 	type: text("type").notNull(), // SALE, PRODUCTION, ADJUSTMENT
 	createdAt: timestamp("createdAt").notNull(),
 });
+
+export const productionTasks = pgTable("production_tasks", {
+	id: text("id").primaryKey(),
+	productId: text("productId")
+		.notNull()
+		.references(() => products.id),
+	status: text("status").notNull().default("PENDING"), // PENDING, IN_PROGRESS, COMPLETED
+	quantity: integer("quantity").notNull().default(0),
+	createdAt: timestamp("createdAt").notNull(),
+	updatedAt: timestamp("updatedAt").notNull(),
+});
