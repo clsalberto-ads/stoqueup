@@ -49,3 +49,31 @@ export const verification = pgTable("verification", {
 	createdAt: timestamp("createdAt"),
 	updatedAt: timestamp("updatedAt"),
 });
+
+export const products = pgTable("products", {
+	id: text("id").primaryKey(),
+	name: text("name").notNull(),
+	description: text("description"),
+	price: integer("price").notNull(), // em centavos
+	imageUrl: text("imageUrl"),
+	qtdMinima: integer("qtdMinima").notNull().default(0),
+	qtdMaxima: integer("qtdMaxima").notNull().default(0),
+	minParaVenda: integer("minParaVenda").notNull().default(0),
+	currentStock: integer("currentStock").notNull().default(0),
+	statusVenda: boolean("statusVenda").notNull().default(true),
+	createdAt: timestamp("createdAt").notNull(),
+	updatedAt: timestamp("updatedAt").notNull(),
+});
+
+export const inventoryLogs = pgTable("inventory_logs", {
+	id: text("id").primaryKey(),
+	productId: text("productId")
+		.notNull()
+		.references(() => products.id),
+	userId: text("userId")
+		.notNull()
+		.references(() => user.id),
+	change: integer("change").notNull(),
+	type: text("type").notNull(), // SALE, PRODUCTION, ADJUSTMENT
+	createdAt: timestamp("createdAt").notNull(),
+});
