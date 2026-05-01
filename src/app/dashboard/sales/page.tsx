@@ -2,6 +2,7 @@ import { db } from "@/db"
 import { inventoryLogs, products } from "@/db/schema"
 import { eq, desc } from "drizzle-orm"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ShoppingCart } from "lucide-react"
 
 export default async function SalesPage() {
     const sales = await db
@@ -18,7 +19,7 @@ export default async function SalesPage() {
         .orderBy(desc(inventoryLogs.createdAt))
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight text-slate-900">Histórico de Vendas</h1>
                 <p className="text-slate-500 mt-2">
@@ -32,7 +33,15 @@ export default async function SalesPage() {
                 </CardHeader>
                 <CardContent>
                     {sales.length === 0 ? (
-                        <p className="text-center py-10 text-slate-500 italic">Nenhuma venda registrada ainda.</p>
+                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                            <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center mb-4 text-slate-400">
+                                <ShoppingCart className="h-8 w-8" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-slate-900">Nenhuma venda registrada</h3>
+                            <p className="text-slate-500 max-w-xs mt-1">
+                                As vendas realizadas através do catálogo de produtos aparecerão aqui.
+                            </p>
+                        </div>
                     ) : (
                         <div className="relative overflow-x-auto">
                             <table className="w-full text-sm text-left text-slate-500">

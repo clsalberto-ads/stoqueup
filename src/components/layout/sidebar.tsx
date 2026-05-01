@@ -11,6 +11,7 @@ import {
   ChevronRight,
 } from "lucide-react"
 
+import { NotificationCenter } from "@/components/notifications/notification-center"
 import {
   Sidebar,
   SidebarContent,
@@ -64,11 +65,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props} className="bg-slate-50">
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-4 py-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white">
-            <Package className="h-5 w-5" />
+        <div className="flex items-center justify-between px-4 py-2">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white">
+              <Package className="h-5 w-5" />
+            </div>
+            <span className="text-xl font-bold tracking-tight text-slate-900 group-data-[collapsible=icon]:hidden">StoqueUp</span>
           </div>
-          <span className="text-xl font-bold tracking-tight text-slate-900">StoqueUp</span>
+          <div className="group-data-[collapsible=icon]:hidden">
+            <NotificationCenter />
+          </div>
         </div>
       </SidebarHeader>
       <SidebarContent>

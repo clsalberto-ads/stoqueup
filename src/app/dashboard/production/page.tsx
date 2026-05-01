@@ -31,7 +31,7 @@ export default async function ProductionPage() {
     const completed = tasks.filter(t => t.status === "COMPLETED")
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900">Gestão de Produção</h1>
