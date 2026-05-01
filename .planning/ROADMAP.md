@@ -6,7 +6,7 @@ StoqueUp será desenvolvido em 5 fases sequenciais para garantir que o fluxo ope
 
 ## Phases
 
-- [ ] **Phase 1: Fundação & Gestão de Produtos** - Setup inicial, Auth ABAC e CRUD de produtos com limites.
+- [x] **Phase 1: Fundação & Gestão de Produtos** - Setup inicial, Auth ABAC e CRUD de produtos com limites.
 - [ ] **Phase 2: Módulo de Vendas & Gatilhos** - Fluxo de saída de estoque e automação de bloqueio.
 - [ ] **Phase 3: Módulo de Produção & Liberação** - Fluxo de entrada de estoque e automação de desbloqueio.
 - [ ] **Phase 4: Inteligência & Dashboard** - Métricas de giro, médias móveis e semáforo de risco.
@@ -25,9 +25,9 @@ StoqueUp será desenvolvido em 5 fases sequenciais para garantir que o fluxo ope
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Setup do projeto e infraestrutura Docker.
-- [ ] 01-02: Implementação de Autenticação e Autorização (Better Auth).
-- [ ] 01-03: CRUD de Produtos e visualização básica de inventário.
+- [x] 01-01: Setup do projeto e infraestrutura Docker.
+- [x] 01-02: Implementação de Autenticação e Autorização (Better Auth).
+- [x] 01-03: CRUD de Produtos e visualização básica de inventário.
 
 ### Phase 2: Módulo de Vendas & Gatilhos
 **Goal**: Implementar o registro de saídas e a primeira automação crítica.
@@ -86,7 +86,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Fundação | 0/3 | Not started | - |
+| 1. Fundação | 3/3 | Complete | 2026-05-01 |
 | 2. Vendas | 0/2 | Not started | - |
 | 3. Produção | 0/2 | Not started | - |
 | 4. Inteligência | 0/2 | Not started | - |
