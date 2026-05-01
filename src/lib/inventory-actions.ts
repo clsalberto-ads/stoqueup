@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { products, inventoryLogs, productionTasks } from "@/db/schema";
 import { eq, and, gte, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { createNotification } from "./notification-actions";
 
 /**
  * Registra uma venda de produto, decrementando o estoque e disparando gatilhos se necessário.
@@ -69,6 +70,13 @@ export async function sellProduct(productId: string, quantity: number) {
                         updatedAt: new Date(),
                     });
                 }
+                
+                // 4. Notificar estoque crítico
+                await createNotification(
+                    session.user.id,
+                    "Estoque Crítico!",
+                    `O produto ${product.name} atingiu o nível mínimo (${product.qtdMinima}). Reposição necessária.`
+                );
             }
 
             return { success: true as const, product };
@@ -169,6 +177,13 @@ export async function completeProduction(taskId: string, productId: string, actu
                 type: "PRODUCTION",
                 createdAt: new Date()
             });
+
+            // 6. Notificar conclusão
+            await createNotification(
+                session.user.id,
+                "Produção Concluída",
+                `Lote de ${actualQuantity} unidades de ${product.name} foi adicionado ao estoque.`
+            );
 
             return { success: true as const, message: `Produção concluída!${adjustmentMessage}` };
         });

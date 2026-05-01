@@ -88,3 +88,14 @@ export const productionTasks = pgTable("production_tasks", {
 	createdAt: timestamp("createdAt").notNull(),
 	updatedAt: timestamp("updatedAt").notNull(),
 });
+
+export const notifications = pgTable("notifications", {
+	id: text("id").primaryKey(),
+	userId: text("userId")
+		.notNull()
+		.references(() => user.id),
+	title: text("title").notNull(),
+	content: text("content").notNull(),
+	isRead: boolean("isRead").default(false).notNull(),
+	createdAt: timestamp("createdAt").notNull(),
+});
