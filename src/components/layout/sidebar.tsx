@@ -6,6 +6,7 @@ import {
   ShoppingCart,
   Package,
   Factory,
+  BarChart3,
   Settings,
   ChevronRight,
 } from "lucide-react"
@@ -44,6 +45,11 @@ const data = {
       title: "Produção",
       url: "/dashboard/production",
       icon: Factory,
+    },
+    {
+      title: "Indicadores",
+      url: "/dashboard/metrics",
+      icon: BarChart3,
     },
     {
       title: "Configurações",

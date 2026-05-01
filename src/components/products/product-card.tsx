@@ -11,7 +11,12 @@ import { toast } from "sonner"
 import { useTransition } from "react"
 
 interface ProductCardProps {
-    product: typeof products.$inferSelect
+    product: typeof products.$inferSelect & {
+        metrics: {
+            daysRemaining: number
+            status: 'CRITICAL' | 'WARNING' | 'HEALTHY'
+        }
+    }
 }
 
 export function ProductCard({ product }: ProductCardProps) {
@@ -69,6 +74,21 @@ export function ProductCard({ product }: ProductCardProps) {
                 <p className="text-sm text-slate-500 line-clamp-2 mb-4 h-10">
                     {product.description || "Sem descrição"}
                 </p>
+
+                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 mb-4">
+                    <div className="flex items-center gap-2">
+                        <div className={`h-2.5 w-2.5 rounded-full ${
+                            product.metrics.status === 'CRITICAL' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]' : 
+                            product.metrics.status === 'WARNING' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 
+                            'bg-emerald-500'
+                        }`} />
+                        <span className="text-xs font-bold text-slate-700">
+                            {product.metrics.daysRemaining === 999 ? "Estoque Seguro" : `${product.metrics.daysRemaining} dias rest.`}
+                        </span>
+                    </div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Semáforo de Risco</span>
+                </div>
+
                 <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-600 font-medium">Estoque:</span>
                     <span className={`font-bold ${isCritical ? 'text-amber-600' : 'text-slate-900'}`}>

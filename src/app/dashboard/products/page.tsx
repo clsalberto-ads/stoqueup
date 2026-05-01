@@ -5,11 +5,21 @@ import { db } from "@/db"
 import { products } from "@/db/schema"
 import { Card, CardContent } from "@/components/ui/card"
 import { ProductCard } from "@/components/products/product-card"
+import { getProductMetrics } from "@/lib/analytics-actions"
 
+export default async function ProductsPage() {
   const allProducts = await db.select().from(products)
   
+  // D-06: Buscar métricas para cada produto
+  const productsWithMetrics = await Promise.all(
+    allProducts.map(async (p) => {
+      const metrics = await getProductMetrics(p.id)
+      return { ...p, metrics }
+    })
+  )
+
   // D-04: Ocultar da lista de vendas se currentStock < minParaVenda
-  const availableProducts = allProducts.filter(p => p.currentStock >= p.minParaVenda)
+  const availableProducts = productsWithMetrics.filter(p => p.currentStock >= p.minParaVenda)
 
   return (
     <div className="space-y-8">
