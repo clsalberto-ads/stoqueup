@@ -26,7 +26,8 @@ export function ProductCard({ product }: ProductCardProps) {
             if (result.success) {
                 toast.success(`Venda registrada: ${product.name}`);
             } else {
-                toast.error(`Erro: ${result.error}`);
+                const errorMessage = 'error' in result ? result.error : "Erro desconhecido";
+                toast.error(`Erro: ${errorMessage}`);
             }
         });
     };
@@ -47,7 +48,7 @@ export function ProductCard({ product }: ProductCardProps) {
                     </div>
                 )}
                 {isCritical && !isOutOfStock && (
-                    <Badge variant="warning" className="absolute top-2 right-2 bg-amber-500 hover:bg-amber-600 text-white border-none gap-1">
+                    <Badge variant="warning" className="absolute top-2 right-2 gap-1">
                         <AlertTriangle className="h-3 w-3" /> Reposição
                     </Badge>
                 )}
