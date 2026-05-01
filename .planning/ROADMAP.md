@@ -9,7 +9,7 @@ StoqueUp será desenvolvido em 5 fases sequenciais para garantir que o fluxo ope
 - [x] **Phase 1: Fundação & Gestão de Produtos** - Setup inicial, Auth ABAC e CRUD de produtos com limites.
 - [x] **Phase 2: Módulo de Vendas & Gatilhos** - Fluxo de saída de estoque e automação de bloqueio.
 - [x] **Phase 3: Módulo de Produção & Liberação** - Fluxo de entrada de estoque e automação de desbloqueio.
-- [ ] **Phase 4: Inteligência & Dashboard** - Métricas de giro, médias móveis e semáforo de risco.
+- [x] **Phase 4: Inteligência & Dashboard** - Métricas de giro, médias móveis e semáforo de risco.
 - [ ] **Phase 5: Polimento & Validação MVP** - Notificações, refinamento de UI e testes finais.
 
 ## Phase Details
@@ -89,7 +89,7 @@ Plans:
 | 1. Fundação | 3/3 | Complete | 2026-05-01 |
 | 2. Vendas | 2/2 | Complete | 2026-05-01 |
 | 3. Produção | 2/2 | Complete | 2026-05-01 |
-| 4. Inteligência | 0/2 | Not started | - |
+| 4. Inteligência | 2/2 | Complete | 2026-05-01 |
 | 5. Polimento | 0/1 | Not started | - |
 
 ---
