@@ -36,8 +36,8 @@ const data = {
       icon: ShoppingCart,
     },
     {
-      title: "Estoque",
-      url: "/dashboard/inventory",
+      title: "Produtos",
+      url: "/dashboard/products",
       icon: Package,
     },
     {

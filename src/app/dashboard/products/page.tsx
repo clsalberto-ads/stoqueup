@@ -4,7 +4,7 @@ import Link from "next/link"
 import { db } from "@/db"
 import { products } from "@/db/schema"
 import { Card, CardContent } from "@/components/ui/card"
-import Image from "next/image"
+import { ProductCard } from "@/components/products/product-card"
 
 export default async function ProductsPage() {
   const allProducts = await db.select().from(products)
@@ -39,35 +39,9 @@ export default async function ProductsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {allProducts.map((product) => (
-            <Card key={product.id} className="overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-              <div className="aspect-video relative bg-slate-100">
-                {product.imageUrl ? (
-                  <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                    Sem Imagem
-                  </div>
-                )}
-              </div>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-bold text-slate-900">{product.name}</h3>
-                  <span className="text-blue-600 font-semibold">R$ {(product.price / 100).toFixed(2)}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm mt-4 pt-4 border-t border-slate-100">
-                  <div>
-                    <p className="text-slate-500">Estoque Atual</p>
-                    <p className="font-medium text-slate-900">{product.currentStock} un</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500">Mínimo</p>
-                    <p className="font-medium text-slate-900">{product.qtdMinima} un</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
       )}
