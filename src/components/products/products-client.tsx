@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ProductCard } from "@/components/products/product-card"
 import { toast } from "sonner"
 import { updateProduct } from "@/lib/product-actions"
+import { ImageUploader } from "@/components/ui/image-uploader"
 
 interface ProductWithMetrics {
   id: string
@@ -47,6 +48,7 @@ export function ProductsClient({ products }: ProductsClientProps) {
     qtdMinima: 0,
     qtdMaxima: 0,
     minParaVenda: 0,
+    imageUrl: null as string | null,
   })
 
   useEffect(() => {
@@ -58,6 +60,7 @@ export function ProductsClient({ products }: ProductsClientProps) {
         qtdMinima: 0,
         qtdMaxima: 0,
         minParaVenda: 0,
+        imageUrl: null,
       })
     }
   }, [isCreateOpen])
@@ -71,6 +74,7 @@ export function ProductsClient({ products }: ProductsClientProps) {
       qtdMinima: product.qtdMinima,
       qtdMaxima: product.qtdMaxima,
       minParaVenda: product.minParaVenda,
+      imageUrl: product.imageUrl,
     })
     setIsEditOpen(true)
   }
@@ -96,6 +100,7 @@ export function ProductsClient({ products }: ProductsClientProps) {
         qtdMinima: formData.qtdMinima,
         qtdMaxima: formData.qtdMaxima,
         minParaVenda: formData.minParaVenda,
+        imageUrl: formData.imageUrl,
       })
       
       if (!result.success) {
@@ -219,6 +224,15 @@ export function ProductsClient({ products }: ProductsClientProps) {
                 </div>
 
                 <div className="space-y-2">
+                  <Label>Imagem do Produto</Label>
+                  <ImageUploader 
+                    value={formData.imageUrl}
+                    onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="prod-price">Preço de Venda (R$)</Label>
                   <Input 
                     id="prod-price" 
@@ -329,6 +343,15 @@ export function ProductsClient({ products }: ProductsClientProps) {
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="Ex: Bolo de chocolate com cobertura"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Imagem do Produto</Label>
+                  <ImageUploader 
+                    value={formData.imageUrl}
+                    onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                    disabled={isSubmitting}
                   />
                 </div>
 
