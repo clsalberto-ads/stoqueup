@@ -10,6 +10,7 @@ import {
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { auth } from "@/lib/auth"
 import { cookies, headers } from "next/headers"
+import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic"
 
@@ -31,6 +32,10 @@ export default async function DashboardLayout({
     })
   } catch {
     // Session not available - user not logged in
+  }
+
+  if (!session || !session.user) {
+    redirect("/login")
   }
 
   return (

@@ -54,6 +54,9 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
+
+  --text-warning: var(--warning);
+  --text-success: var(--success);
 }
 
 :root {
@@ -187,5 +190,57 @@
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .text-warning {
+    color: var(--warning);
+  }
+
+  .text-success {
+    color: var(--success);
+  }
+
+  .bg-warning\/15 {
+    background-color: color-mix(in srgb, var(--warning) 15%, transparent);
+  }
+
+  .bg-success\/15 {
+    background-color: color-mix(in srgb, var(--success) 15%, transparent);
+  }
+
+  .border-warning\/20 {
+    border-color: color-mix(in srgb, var(--warning) 20%, transparent);
+  }
+
+  .border-success\/20 {
+    border-color: color-mix(in srgb, var(--success) 20%, transparent);
+  }
+
+  .hover\:text-warning:hover {
+    color: var(--warning);
+  }
+
+  .hover\:text-success:hover {
+    color: var(--success);
+  }
+
+  .hover\:bg-warning\/10:hover {
+    background-color: color-mix(in srgb, var(--warning) 10%, transparent);
+  }
+
+  .hover\:bg-success\/10:hover {
+    background-color: color-mix(in srgb, var(--success) 10%, transparent);
+  }
+
+  .bg-warning\/8 {
+    background-color: color-mix(in srgb, var(--warning) 8%, transparent);
+  }
+
+  .bg-success\/8 {
+    background-color: color-mix(in srgb, var(--success) 8%, transparent);
+  }
+
+  .bg-destructive\/8 {
+    background-color: color-mix(in srgb, var(--destructive) 8%, transparent);
   }
 }
