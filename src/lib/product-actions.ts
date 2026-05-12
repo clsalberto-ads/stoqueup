@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { db } from "@/db";
 import { products, productionTasks } from "@/db/schema";
 import { revalidatePath } from "next/cache";
+import { eq } from "drizzle-orm";
 
 export async function createProduct(data: {
     name: string;
@@ -59,6 +60,57 @@ export async function createProduct(data: {
         revalidatePath("/dashboard/production");
         revalidatePath("/dashboard");
         return { success: true as const, product: result };
+    } catch (error) {
+        return { 
+            success: false as const, 
+            error: error instanceof Error ? error.message : "Erro desconhecido" 
+        };
+    }
+}
+
+export async function updateProduct(productId: string, data: {
+    name: string;
+    description?: string;
+    price: number;
+    qtdMinima: number;
+    qtdMaxima: number;
+    minParaVenda: number;
+    imageUrl?: string | null;
+    statusVenda?: boolean;
+}) {
+    const session = await auth.api.getSession({
+        headers: await headers()
+    });
+    
+    if (!session || !session.user) {
+        throw new Error("Não autorizado");
+    }
+
+    if (session.user.role !== "admin") {
+        throw new Error("Apenas administradores podem editar produtos");
+    }
+
+    try {
+        const priceInCents = Math.round(data.price * 100);
+
+        await db.update(products)
+            .set({
+                name: data.name,
+                description: data.description ?? null,
+                price: priceInCents,
+                qtdMinima: data.qtdMinima,
+                qtdMaxima: data.qtdMaxima,
+                minParaVenda: data.minParaVenda,
+                imageUrl: data.imageUrl ?? null,
+                statusVenda: data.statusVenda ?? true,
+                updatedAt: new Date(),
+            })
+            .where(eq(products.id, productId));
+
+        revalidatePath("/dashboard/products");
+        revalidatePath("/dashboard/production");
+        revalidatePath("/dashboard");
+        return { success: true as const };
     } catch (error) {
         return { 
             success: false as const, 

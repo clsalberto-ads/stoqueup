@@ -3,7 +3,8 @@
 import { products } from "@/db/schema"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Package, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Package, TrendingUp, AlertTriangle, CheckCircle, Pencil } from "lucide-react"
 import Image from "next/image"
 import { PRODUCT_STATUS } from "@/lib/product-status"
 import { cn } from "@/lib/utils"
@@ -16,11 +17,18 @@ interface ProductCardProps {
             status: 'CRITICAL' | 'WARNING' | 'HEALTHY'
         }
     }
+    onEdit?: (product: typeof products.$inferSelect & {
+        metrics: {
+            daysRemaining: number
+            average30d: number
+            status: 'CRITICAL' | 'WARNING' | 'HEALTHY'
+        }
+    }) => void
 }
 
 const infoBoxStyles = "flex flex-col items-center justify-center p-2 rounded-lg bg-muted/50 text-center min-w-[70px]"
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, onEdit }: ProductCardProps) {
     const status = PRODUCT_STATUS[product.metrics.status]
     const priceFormated = (product.price / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
@@ -39,6 +47,18 @@ export function ProductCard({ product }: ProductCardProps) {
                         {product.statusVenda ? "Ativo" : "Inativo"}
                     </Badge>
                 </div>
+                {onEdit && (
+                    <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button 
+                            variant="secondary" 
+                            size="sm" 
+                            className="h-8 w-8 p-0"
+                            onClick={() => onEdit(product)}
+                        >
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+                    </div>
+                )}
             </div>
             
             <CardContent className="p-4 flex-1 flex flex-col gap-3">
