@@ -10,7 +10,7 @@ StoqueUp será desenvolvido em 5 fases sequenciais para garantir que o fluxo ope
 - [x] **Phase 2: Módulo de Vendas & Gatilhos** - Fluxo de saída de estoque e automação de bloqueio.
 - [x] **Phase 3: Módulo de Produção & Liberação** - Fluxo de entrada de estoque e automação de desbloqueio.
 - [x] **Phase 4: Inteligência & Dashboard** - Métricas de giro, médias móveis e semáforo de risco.
-- [ ] **Phase 5: Polimento & Validação MVP** - Notificações, refinamento de UI e testes finais.
+- [x] **Phase 5: Polimento & Validação MVP** - Notificações, refinamento de UI e testes finais.
 
 ## Phase Details
 
@@ -68,8 +68,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Cálculo de médias móveis e métricas de giro.
-- [ ] 04-02: Dashboard visual com gráficos e indicadores de risco.
+- [x] 04-01: Cálculo de médias móveis e métricas de giro.
+- [x] 04-02: Dashboard visual com gráficos e indicadores de risco.
 
 ### Phase 5: Polimento & Validação MVP
 **Goal**: Garantir que a experiência do usuário seja fluida e premium.
@@ -77,8 +77,6 @@ Plans:
 **Success Criteria**:
   1. UI/UX refinada seguindo a inspiração do Kyte com estética moderna.
   2. Fluxos de ponta a ponta testados e sem bugs críticos.
-**Plans**: 1 plan
-
 Plans:
 - [ ] 05-01: Ajustes finais de UI, notificações e preparo para entrega.
 
@@ -90,7 +88,10 @@ Plans:
 | 2. Vendas | 2/2 | Complete | 2026-05-01 |
 | 3. Produção | 2/2 | Complete | 2026-05-01 |
 | 4. Inteligência | 2/2 | Complete | 2026-05-01 |
-| 5. Polimento | 0/1 | Not started | - |
+| 5. Polimento | 1/1 | Complete | 2026-05-01 |
+
+---
+**Status Final: MVP Concluído**
 
 ---
 *Roadmap defined: 2026-05-01*

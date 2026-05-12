@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,6 +23,11 @@ interface CompleteProductionModalProps {
 export function CompleteProductionModal({ task, isOpen, onClose }: CompleteProductionModalProps) {
     const [quantity, setQuantity] = useState(task.plannedQuantity)
     const [isPending, startTransition] = useTransition()
+
+    // Sincroniza quantity com a task atual sempre que a modal abre
+    useEffect(() => {
+        if (isOpen) setQuantity(task.plannedQuantity)
+    }, [isOpen, task.plannedQuantity])
 
     const handleConfirm = () => {
         startTransition(async () => {
@@ -63,7 +68,7 @@ export function CompleteProductionModal({ task, isOpen, onClose }: CompleteProdu
                     <Button variant="outline" onClick={onClose} disabled={isPending}>
                         Cancelar
                     </Button>
-                    <Button onClick={handleConfirm} disabled={isPending} className="bg-blue-600 hover:bg-blue-700">
+                    <Button onClick={handleConfirm} disabled={isPending} className="bg-primary hover:bg-primary/80">
                         {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Confirmar e Incrementar
                     </Button>

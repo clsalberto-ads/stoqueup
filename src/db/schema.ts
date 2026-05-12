@@ -8,6 +8,9 @@ export const user = pgTable("user", {
 	image: text("image"),
 	createdAt: timestamp("createdAt").notNull(),
 	updatedAt: timestamp("updatedAt").notNull(),
+	role: text("role"),
+	banned: boolean("banned"),
+	impersonatedBy: text("impersonatedBy"),
 });
 
 export const session = pgTable("session", {
@@ -98,4 +101,39 @@ export const notifications = pgTable("notifications", {
 	content: text("content").notNull(),
 	isRead: boolean("isRead").default(false).notNull(),
 	createdAt: timestamp("createdAt").notNull(),
+});
+
+export const organization = pgTable("organization", {
+	id: text("id").primaryKey(),
+	name: text("name").notNull(),
+	slug: text("slug").unique(),
+	logo: text("logo"),
+	createdAt: timestamp("createdAt").notNull(),
+	metadata: text("metadata"),
+});
+
+export const member = pgTable("member", {
+	id: text("id").primaryKey(),
+	organizationId: text("organizationId")
+		.notNull()
+		.references(() => organization.id),
+	userId: text("userId")
+		.notNull()
+		.references(() => user.id),
+	role: text("role").notNull(),
+	createdAt: timestamp("createdAt").notNull(),
+});
+
+export const invitation = pgTable("invitation", {
+	id: text("id").primaryKey(),
+	organizationId: text("organizationId")
+		.notNull()
+		.references(() => organization.id),
+	email: text("email").notNull(),
+	role: text("role"),
+	status: text("status").notNull(),
+	expiresAt: timestamp("expiresAt").notNull(),
+	inviterId: text("inviterId")
+		.notNull()
+		.references(() => user.id),
 });

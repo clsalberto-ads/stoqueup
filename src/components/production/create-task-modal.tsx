@@ -49,11 +49,13 @@ export function CreateTaskModal({ products }: CreateTaskModalProps) {
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                    <Plus className="mr-2 h-4 w-4" /> Nova Produção
-                </Button>
-            </DialogTrigger>
+            <DialogTrigger 
+                render={
+                    <Button className="bg-primary hover:bg-primary/80">
+                        <Plus className="mr-2 h-4 w-4" /> Nova Produção
+                    </Button>
+                }
+            />
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>Nova Ordem de Produção</DialogTitle>
@@ -64,7 +66,7 @@ export function CreateTaskModal({ products }: CreateTaskModalProps) {
                 <div className="grid gap-4 py-4">
                     <div className="space-y-2">
                         <Label htmlFor="product">Produto</Label>
-                        <Select onValueChange={setSelectedProductId} value={selectedProductId}>
+                        <Select onValueChange={(val) => setSelectedProductId(val ?? "")} value={selectedProductId}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Selecione o produto" />
                             </SelectTrigger>
@@ -98,7 +100,7 @@ export function CreateTaskModal({ products }: CreateTaskModalProps) {
                     <Button 
                         onClick={handleConfirm} 
                         disabled={isPending || quantity > maxAllowed || quantity <= 0 || !selectedProductId} 
-                        className="bg-blue-600 hover:bg-blue-700"
+                        className="bg-primary hover:bg-primary/80"
                     >
                         {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Criar Tarefa

@@ -1,116 +1,87 @@
 "use client"
 
 import { products } from "@/db/schema"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ShoppingCart, AlertTriangle, Loader2 } from "lucide-react"
+import { Package, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react"
 import Image from "next/image"
-import { sellProduct } from "@/lib/inventory-actions"
-import { toast } from "sonner"
-import { useTransition } from "react"
+import { PRODUCT_STATUS } from "@/lib/product-status"
+import { cn } from "@/lib/utils"
 
 interface ProductCardProps {
     product: typeof products.$inferSelect & {
         metrics: {
             daysRemaining: number
+            average30d: number
             status: 'CRITICAL' | 'WARNING' | 'HEALTHY'
         }
     }
 }
 
+const infoBoxStyles = "flex flex-col items-center justify-center p-2 rounded-lg bg-muted/50 text-center min-w-[70px]"
+
 export function ProductCard({ product }: ProductCardProps) {
-    const [isPending, startTransition] = useTransition();
-
-    const isCritical = product.currentStock <= product.qtdMinima;
-    const isOutOfStock = product.currentStock <= 0;
-
-    const handleSell = () => {
-        startTransition(async () => {
-            const result = await sellProduct(product.id, 1);
-            if (result.success) {
-                toast.success(`Venda registrada: ${product.name}`);
-            } else {
-                const errorMessage = 'error' in result ? result.error : "Erro desconhecido";
-                toast.error(`Erro: ${errorMessage}`);
-            }
-        });
-    };
+    const status = PRODUCT_STATUS[product.metrics.status]
+    const priceFormated = (product.price / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
     return (
-        <Card className="overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
-            <div className="aspect-video relative bg-slate-100 shrink-0">
+        <Card className="overflow-hidden border-border shadow-sm hover:shadow-md transition-all flex flex-col h-full group">
+            <div className="aspect-video relative bg-muted shrink-0">
                 {product.imageUrl ? (
-                    <Image
-                        src={product.imageUrl}
-                        alt={product.name}
-                        fill
-                        className="object-cover"
-                    />
+                    <Image src={product.imageUrl} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                 ) : (
-                    <div className="flex items-center justify-center h-full text-slate-400 text-xs">
-                        Sem Imagem
+                    <div className="flex items-center justify-center h-full">
+                        <Package className="h-16 w-16 text-muted-foreground/20" />
                     </div>
                 )}
-                {isCritical && !isOutOfStock && (
-                    <Badge variant="warning" className="absolute top-2 right-2 gap-1">
-                        <AlertTriangle className="h-3 w-3" /> Reposição
+                <div className="absolute top-2 right-2">
+                    <Badge variant={product.statusVenda ? "default" : "secondary"} className={!product.statusVenda ? "opacity-60" : ""}>
+                        {product.statusVenda ? "Ativo" : "Inativo"}
                     </Badge>
-                )}
-                {isOutOfStock && (
-                    <Badge variant="destructive" className="absolute top-2 right-2 gap-1">
-                        Esgotado
-                    </Badge>
-                )}
+                </div>
             </div>
             
-            <CardContent className="p-4 flex-1">
-                <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-slate-900 truncate flex-1 mr-2">{product.name}</h3>
-                    <span className="font-bold text-blue-600">
-                        {(product.price / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </span>
+            <CardContent className="p-4 flex-1 flex flex-col gap-3">
+                <h3 className="font-bold text-lg text-foreground line-clamp-1">{product.name}</h3>
+
+                <div className="text-2xl font-extrabold text-primary">
+                    {priceFormated}
                 </div>
-                <p className="text-sm text-slate-500 line-clamp-2 mb-4 h-10">
-                    {product.description || "Sem descrição"}
+
+                <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem]">
+                    {product.description || "Produto de qualidade"}
                 </p>
 
-                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 mb-4">
-                    <div className="flex items-center gap-2">
-                        <div className={`h-2.5 w-2.5 rounded-full ${
-                            product.metrics.status === 'CRITICAL' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]' : 
-                            product.metrics.status === 'WARNING' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 
-                            'bg-emerald-500'
-                        }`} />
-                        <span className="text-xs font-bold text-slate-700">
-                            {product.metrics.daysRemaining === 999 ? "Estoque Seguro" : `${product.metrics.daysRemaining} dias rest.`}
+                <div className="grid grid-cols-4 gap-2 mt-auto">
+                    <div className={infoBoxStyles}>
+                        <span className="text-xs text-muted-foreground">Estoque</span>
+                        <span className="text-sm font-bold">{product.currentStock}</span>
+                    </div>
+
+                    <div className={infoBoxStyles}>
+                        <span className="text-xs text-muted-foreground">Dias</span>
+                        <span className="text-sm font-bold">
+                            {product.metrics.daysRemaining === 999 ? "∞" : product.metrics.daysRemaining}
                         </span>
                     </div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400">Semáforo de Risco</span>
-                </div>
 
-                <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600 font-medium">Estoque:</span>
-                    <span className={`font-bold ${isCritical ? 'text-amber-600' : 'text-slate-900'}`}>
-                        {product.currentStock} unid.
-                    </span>
+                    <div className={infoBoxStyles}>
+                        <TrendingUp className="h-3 w-3 text-muted-foreground mb-0.5" />
+                        <span className="text-sm font-bold">{product.metrics.average30d.toFixed(0)}</span>
+                    </div>
+
+                    <div className={cn(infoBoxStyles, status.bgColor)}>
+                        {product.metrics.status === 'HEALTHY' ? (
+                            <CheckCircle className={cn("h-4 w-4", status.textColor)} />
+                        ) : (
+                            <AlertTriangle className={cn("h-4 w-4", status.textColor)} />
+                        )}
+                        <span className={cn("text-xs font-medium", status.textColor)}>
+                            {product.metrics.status === 'HEALTHY' ? 'OK' : product.metrics.status === 'WARNING' ? '⚠' : '!'}
+                        </span>
+                    </div>
                 </div>
             </CardContent>
-
-            <CardFooter className="p-4 pt-0">
-                <Button 
-                    className="w-full bg-slate-900 hover:bg-slate-800 text-white gap-2"
-                    onClick={handleSell}
-                    disabled={isPending || isOutOfStock}
-                >
-                    {isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                        <ShoppingCart className="h-4 w-4" />
-                    )}
-                    {isOutOfStock ? "Indisponível" : "Vender 1 un."}
-                </Button>
-            </CardFooter>
         </Card>
-    );
+    )
 }

@@ -1,6 +1,7 @@
 "use server"
 
 import { auth } from "./auth";
+import { headers } from "next/headers";
 import { db } from "@/db";
 import { products, inventoryLogs, productionTasks } from "@/db/schema";
 import { eq, and, gte, sql } from "drizzle-orm";
@@ -11,7 +12,9 @@ import { createNotification } from "./notification-actions";
  * Registra uma venda de produto, decrementando o estoque e disparando gatilhos se necessário.
  */
 export async function sellProduct(productId: string, quantity: number) {
-    const session = await auth.api.getSession();
+    const session = await auth.api.getSession({
+        headers: await headers()
+    });
     
     if (!session || !session.user) {
         throw new Error("Não autorizado");
@@ -84,6 +87,8 @@ export async function sellProduct(productId: string, quantity: number) {
 
         revalidatePath("/dashboard/products");
         revalidatePath("/dashboard/sales");
+        revalidatePath("/dashboard/metrics");
+        revalidatePath("/dashboard");
         
         return result;
     } catch (error) {
@@ -96,10 +101,107 @@ export async function sellProduct(productId: string, quantity: number) {
 }
 
 /**
+ * Registra uma venda com múltiplos produtos (carrinho de compras).
+ */
+export async function sellMultipleProducts(items: { productId: string, quantity: number }[]) {
+    const session = await auth.api.getSession({
+        headers: await headers()
+    });
+    
+    if (!session || !session.user) {
+        throw new Error("Não autorizado");
+    }
+
+    if (!items || items.length === 0) {
+        return { success: false as const, error: "Nenhum item informado" };
+    }
+
+    try {
+        const transactionTime = new Date();
+        await db.transaction(async (tx) => {
+            for (const item of items) {
+                // 1. Decremento atômico
+                const updated = await tx
+                    .update(products)
+                    .set({
+                        currentStock: sql`${products.currentStock} - ${item.quantity}`,
+                        updatedAt: transactionTime
+                    })
+                    .where(and(
+                        eq(products.id, item.productId),
+                        gte(products.currentStock, item.quantity)
+                    ))
+                    .returning();
+
+                const product = updated[0];
+
+                if (!product) {
+                    throw new Error(`Estoque insuficiente ou produto não encontrado para o ID: ${item.productId}`);
+                }
+
+                // 2. Registrar no log
+                await tx.insert(inventoryLogs).values({
+                    id: crypto.randomUUID(),
+                    productId: product.id,
+                    userId: session.user.id,
+                    change: -item.quantity,
+                    type: "SALE",
+                    createdAt: transactionTime,
+                });
+
+                // 3. Verificar gatilho de produção
+                if (product.currentStock <= product.qtdMinima) {
+                    const existingTask = await tx
+                        .select()
+                        .from(productionTasks)
+                        .where(and(
+                            eq(productionTasks.productId, product.id),
+                            eq(productionTasks.status, "PENDING")
+                        ))
+                        .limit(1);
+
+                    if (existingTask.length === 0) {
+                        await tx.insert(productionTasks).values({
+                            id: crypto.randomUUID(),
+                            productId: product.id,
+                            status: "PENDING",
+                            quantity: Math.max(product.qtdMaxima - product.currentStock, 1),
+                            createdAt: transactionTime,
+                            updatedAt: transactionTime,
+                        });
+                    }
+                    
+                    await createNotification(
+                        session.user.id,
+                        "Estoque Crítico!",
+                        `O produto ${product.name} atingiu o nível mínimo. Reposição necessária.`
+                    );
+                }
+            }
+        });
+
+        revalidatePath("/dashboard/products");
+        revalidatePath("/dashboard/sales");
+        revalidatePath("/dashboard/metrics");
+        revalidatePath("/dashboard");
+        
+        return { success: true as const };
+    } catch (error) {
+        console.error("Erro ao processar venda múltipla:", error);
+        return { 
+            success: false as const, 
+            error: error instanceof Error ? error.message : "Erro desconhecido" 
+        };
+    }
+}
+
+/**
  * Atualiza o status de uma tarefa de produção.
  */
 export async function updateProductionStatus(taskId: string, newStatus: "PENDING" | "IN_PROGRESS" | "COMPLETED") {
-    const session = await auth.api.getSession();
+    const session = await auth.api.getSession({
+        headers: await headers()
+    });
     
     if (!session || !session.user) {
         throw new Error("Não autorizado");
@@ -127,7 +229,9 @@ export async function updateProductionStatus(taskId: string, newStatus: "PENDING
  * Conclui uma produção, incrementando o estoque com conferência.
  */
 export async function completeProduction(taskId: string, productId: string, actualQuantity: number) {
-    const session = await auth.api.getSession();
+    const session = await auth.api.getSession({
+        headers: await headers()
+    });
     
     if (!session || !session.user) {
         throw new Error("Não autorizado");
@@ -135,6 +239,13 @@ export async function completeProduction(taskId: string, productId: string, actu
 
     try {
         const result = await db.transaction(async (tx) => {
+            // 0. Obter a tarefa para verificar a quantidade original
+            const task = await tx.query.productionTasks.findFirst({
+                where: eq(productionTasks.id, taskId)
+            });
+
+            if (!task) throw new Error("Tarefa de produção não encontrada");
+
             // 1. Obter produto para verificar qtd_maxima
             const product = await tx.query.products.findFirst({
                 where: eq(products.id, productId)
@@ -160,13 +271,28 @@ export async function completeProduction(taskId: string, productId: string, actu
                 })
                 .where(eq(products.id, productId));
 
-            // 4. Marcar tarefa como concluída
+            // 4. Marcar tarefa como concluída e atualizar quantidade para a real confirmada
             await tx.update(productionTasks)
                 .set({ 
                     status: "COMPLETED",
+                    quantity: actualQuantity, // Garante que o histórico mostre apenas o que foi feito
                     updatedAt: new Date()
                 })
                 .where(eq(productionTasks.id, taskId));
+
+            // 4.5. Se a produção foi parcial, criar uma nova tarefa para a quantidade restante
+            if (actualQuantity < task.quantity) {
+                const remaining = task.quantity - actualQuantity;
+                await tx.insert(productionTasks).values({
+                    id: crypto.randomUUID(),
+                    productId,
+                    status: "PENDING",
+                    quantity: remaining,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                });
+                adjustmentMessage += ` (Tarefa residual de ${remaining} unid. gerada automaticamente)`;
+            }
 
             // 5. Log de inventário
             await tx.insert(inventoryLogs).values({
@@ -190,6 +316,8 @@ export async function completeProduction(taskId: string, productId: string, actu
 
         revalidatePath("/dashboard/products");
         revalidatePath("/dashboard/production");
+        revalidatePath("/dashboard/metrics");
+        revalidatePath("/dashboard");
         return result;
     } catch (error) {
         return { 
@@ -203,7 +331,9 @@ export async function completeProduction(taskId: string, productId: string, actu
  * Cria uma tarefa de produção manual (Apenas Manager).
  */
 export async function createManualProductionTask(productId: string, quantity: number) {
-    const session = await auth.api.getSession();
+    const session = await auth.api.getSession({
+        headers: await headers()
+    });
     
     if (!session || !session.user || session.user.role !== "admin") {
         throw new Error("Ação permitida apenas para administradores");
@@ -232,11 +362,106 @@ export async function createManualProductionTask(productId: string, quantity: nu
         });
 
         revalidatePath("/dashboard/production");
+        revalidatePath("/dashboard/metrics");
+        revalidatePath("/dashboard");
         return { success: true as const };
     } catch (error) {
         return { 
             success: false as const, 
             error: error instanceof Error ? error.message : "Erro desconhecido" 
         };
+    }
+}
+
+interface SaleItemUpdate {
+    id: string
+    productName: string
+    quantity: number
+    price: number
+    subtotal: number
+}
+
+interface SaleItemOriginal {
+    id: string
+    productName: string
+    quantity: number
+    price: number
+    subtotal: number
+}
+
+export async function updateSale(saleId: string, updatedItems: SaleItemUpdate[], originalItems: SaleItemOriginal[]) {
+    const session = await auth.api.getSession({
+        headers: await headers()
+    });
+
+    if (!session || !session.user) {
+        throw new Error("Não autorizado");
+    }
+
+    try {
+        await db.transaction(async (tx) => {
+            for (const originalItem of originalItems) {
+                const updatedItem = updatedItems.find(i => i.id === originalItem.id)
+                if (!updatedItem) {
+                    throw new Error(`Item não encontrado: ${originalItem.id}`)
+                }
+
+                if (originalItem.quantity === updatedItem.quantity) {
+                    continue
+                }
+
+                const quantityDiff = updatedItem.quantity - originalItem.quantity
+
+                if (quantityDiff < 0) {
+                    await tx
+                        .update(products)
+                        .set({
+                            currentStock: sql`${products.currentStock} + ${Math.abs(quantityDiff)}`,
+                            updatedAt: new Date()
+                        })
+                        .where(eq(products.id, originalItem.id))
+                } else {
+                    const product = await tx.query.products.findFirst({
+                        where: eq(products.id, originalItem.id)
+                    })
+
+                    if (!product) {
+                        throw new Error(`Produto não encontrado para o item: ${originalItem.productName}`)
+                    }
+
+                    if (product.currentStock < quantityDiff) {
+                        throw new Error(`Estoque insuficiente para: ${originalItem.productName}. Disponível: ${product.currentStock}`)
+                    }
+
+                    await tx
+                        .update(products)
+                        .set({
+                            currentStock: sql`${products.currentStock} - ${quantityDiff}`,
+                            updatedAt: new Date()
+                        })
+                        .where(eq(products.id, originalItem.id))
+                }
+
+                await tx
+                    .update(inventoryLogs)
+                    .set({
+                        change: -updatedItem.quantity,
+                    })
+                    .where(eq(inventoryLogs.id, originalItem.id))
+            }
+        })
+
+        revalidatePath("/dashboard/sales");
+        revalidatePath("/dashboard/products");
+        revalidatePath("/dashboard/metrics");
+        revalidatePath("/dashboard");
+
+        return { success: true as const };
+    } catch (error) {
+        console.error("Erro ao atualizar venda:", error)
+        return {
+            success: false as const,
+            error: error instanceof Error ? error.message : "Erro desconhecido"
+        }
     }
 }

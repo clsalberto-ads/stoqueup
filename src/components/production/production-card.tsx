@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Play, CheckCircle, Clock, Loader2, Factory } from "lucide-react"
+import { Play, CheckCircle, Clock, Loader2, Package, Calendar } from "lucide-react"
 import { updateProductionStatus } from "@/lib/inventory-actions"
 import { CompleteProductionModal } from "./complete-production-modal"
 import { toast } from "sonner"
@@ -20,72 +20,99 @@ interface ProductionCardProps {
     }
 }
 
+const statusConfig = {
+    PENDING: { 
+        label: "Pendente", 
+        variant: "secondary" as const, 
+        icon: Clock,
+        buttonVariant: "default" as const,
+        buttonText: "Iniciar Produção"
+    },
+    IN_PROGRESS: { 
+        label: "Produzindo", 
+        variant: "warning" as const, 
+        icon: Package,
+        buttonVariant: "default" as const,
+        buttonStyle: "bg-emerald-600 hover:bg-emerald-700" as const,
+        buttonText: "Concluir Produção"
+    },
+    COMPLETED: { 
+        label: "Concluído", 
+        variant: "secondary" as const, 
+        icon: CheckCircle,
+        buttonVariant: "outline" as const,
+        buttonText: "Concluído"
+    }
+}
+
 export function ProductionCard({ task }: ProductionCardProps) {
     const [isPending, startTransition] = useTransition()
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const config = statusConfig[task.status]
+    const StatusIcon = config.icon
 
     const handleStart = () => {
         startTransition(async () => {
-            const result = await updateProductionStatus(task.id, "IN_PROGRESS");
+            const result = await updateProductionStatus(task.id, "IN_PROGRESS")
             if (result.success) {
-                toast.success("Produção iniciada!");
+                toast.success("Produção iniciada!")
             } else {
-                toast.error(`Erro: ${result.error}`);
+                toast.error(`Erro: ${result.error}`)
             }
-        });
+        })
     }
-
-    const statusMap = {
-        PENDING: { label: "Pendente", color: "bg-slate-100 text-slate-700", icon: Clock },
-        IN_PROGRESS: { label: "Produzindo", color: "bg-blue-100 text-blue-700", icon: Factory },
-        COMPLETED: { label: "Concluído", color: "bg-green-100 text-green-700", icon: CheckCircle },
-    }
-
-    const { label, color, icon: StatusIcon } = statusMap[task.status]
 
     return (
-        <Card className="border-slate-200 shadow-sm overflow-hidden flex flex-col">
-            <CardHeader className="p-4 pb-0 flex flex-row items-center justify-between">
-                <Badge variant="outline" className={`${color} border-none font-semibold flex gap-1 items-center`}>
-                    <StatusIcon className="h-3 w-3" /> {label}
-                </Badge>
-                <span className="text-xs text-slate-400">
-                    {new Date(task.createdAt).toLocaleDateString('pt-BR')}
-                </span>
+        <Card className="border-border shadow-sm hover:shadow-md transition-all flex flex-col h-full">
+            <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                    <Badge variant={config.variant} className="flex items-center gap-1">
+                        <StatusIcon className="h-3 w-3" />
+                        {config.label}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(task.createdAt).toLocaleDateString('pt-BR')}
+                    </span>
+                </div>
             </CardHeader>
             
-            <CardContent className="p-4 flex-1">
-                <h3 className="font-bold text-slate-900 mb-1">{task.productName}</h3>
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <span className="font-medium">Lote Planejado:</span>
-                    <span className="text-slate-900 font-bold">{task.quantity} unid.</span>
+            <CardContent className="pt-0 flex-1">
+                <h3 className="font-semibold text-lg text-foreground mb-3">{task.productName}</h3>
+                
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Quantidade</span>
+                        <span className="text-sm font-medium">{task.quantity} unid.</span>
+                    </div>
                 </div>
             </CardContent>
 
-            <CardFooter className="p-4 pt-0">
+            <CardFooter className="pt-3">
                 {task.status === "PENDING" && (
                     <Button 
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-2"
+                        className="w-full bg-primary hover:bg-primary/80 gap-2"
                         onClick={handleStart}
                         disabled={isPending}
                     >
-                        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-current" />}
+                        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
                         Iniciar Produção
                     </Button>
                 )}
                 {task.status === "IN_PROGRESS" && (
                     <Button 
-                        className="w-full bg-green-600 hover:bg-green-700 text-white gap-2"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 gap-2"
                         onClick={() => setIsModalOpen(true)}
                         disabled={isPending}
                     >
                         <CheckCircle className="h-4 w-4" />
-                        Concluir e Conferir
+                        Concluir Produção
                     </Button>
                 )}
                 {task.status === "COMPLETED" && (
-                    <div className="w-full py-2 text-center text-sm font-medium text-green-600 flex items-center justify-center gap-1">
-                        <CheckCircle className="h-4 w-4" /> Concluído
+                    <div className="w-full py-2 text-center text-sm font-medium text-emerald-600 flex items-center justify-center gap-1 bg-emerald-50 rounded-lg">
+                        <CheckCircle className="h-4 w-4" />
+                        Concluído
                     </div>
                 )}
             </CardFooter>

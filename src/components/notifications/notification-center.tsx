@@ -1,122 +1,132 @@
 "use client"
 
-import { useState, useEffect, useTransition } from "react"
-import { Bell, BellDot, CheckCircle2, AlertTriangle, Clock } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Bell, BellRing, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { getNotifications, markAllAsRead, markAsRead } from "@/lib/notification-actions"
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
-import { toast } from "sonner"
+import { formatRelativeTime } from "@/lib/utils/date"
+
+interface Notification {
+    id: string
+    title: string
+    content: string
+    isRead: boolean
+    createdAt: string | Date
+}
 
 export function NotificationCenter() {
-    const [notifications, setNotifications] = useState<any[]>([])
-    const [isPending, startTransition] = useTransition()
+    const [notifications, setNotifications] = useState<Notification[]>([])
+    const [loading, setLoading] = useState(true)
 
-    const unreadCount = notifications.filter(n => !n.isRead).length
+    const loadNotifications = async () => {
+        setLoading(true)
+        try {
+            const res = await fetch("/api/notifications", { credentials: "include" })
+            const data = await res.json()
+            setNotifications(Array.isArray(data) ? data : [])
+        } catch (err) {
+            console.error("Error:", err)
+        } finally {
+            setLoading(false)
+        }
+    }
 
-    const fetchNotifications = async () => {
-        const data = await getNotifications()
-        setNotifications(data)
+    const handleMarkAsRead = async (id: string) => {
+        try {
+            await fetch("/api/notifications", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id })
+            })
+            setNotifications(prev => prev.filter(n => n.id !== id))
+        } catch (err) {
+            console.error("Error marking as read:", err)
+        }
     }
 
     useEffect(() => {
-        fetchNotifications()
-        // Polling simples para MVP
-        const interval = setInterval(fetchNotifications, 30000)
+        loadNotifications()
+        const interval = setInterval(loadNotifications, 30000)
         return () => clearInterval(interval)
     }, [])
 
-    const handleMarkAllRead = () => {
-        startTransition(async () => {
-            await markAllAsRead()
-            toast.success("Todas marcadas como lidas")
-            fetchNotifications()
-        })
-    }
-
-    const handleReadOne = (id: string) => {
-        startTransition(async () => {
-            await markAsRead(id)
-            fetchNotifications()
-        })
-    }
+    const unreadCount = notifications.filter(n => !n.isRead).length
 
     return (
-        <Popover>
-            <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full bg-slate-100 hover:bg-slate-200">
-                    {unreadCount > 0 ? (
-                        <>
-                            <BellDot className="h-5 w-5 text-blue-600" />
-                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
-                                {unreadCount}
-                            </span>
-                        </>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="relative h-9 w-9 rounded-full"
+                >
+                    {loading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : unreadCount > 0 ? (
+                        <BellRing className="h-4 w-4" />
                     ) : (
-                        <Bell className="h-5 w-5 text-slate-500" />
+                        <Bell className="h-4 w-4" />
+                    )}
+                    {unreadCount > 0 && (
+                        <Badge 
+                            className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px]"
+                            variant="destructive"
+                        >
+                            {unreadCount > 9 ? "9+" : unreadCount}
+                        </Badge>
                     )}
                 </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-0" align="end">
-                <div className="flex items-center justify-between p-4 pb-2">
-                    <h4 className="font-bold text-slate-900">Notificações</h4>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel className="flex justify-between items-center">
+                    <span>Notificações</span>
                     {unreadCount > 0 && (
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-xs text-blue-600 hover:text-blue-700 h-auto p-0"
-                            onClick={handleMarkAllRead}
-                            disabled={isPending}
-                        >
-                            Ler todas
-                        </Button>
+                        <span className="text-xs text-muted-foreground">
+                            {unreadCount} nova(s)
+                        </span>
                     )}
-                </div>
-                <Separator />
-                <div className="max-h-[400px] overflow-y-auto">
-                    {notifications.length === 0 ? (
-                        <div className="py-10 text-center text-slate-400">
-                            <Bell className="h-8 w-8 mx-auto mb-2 opacity-20" />
-                            <p className="text-sm">Nenhuma notificação</p>
-                        </div>
-                    ) : (
-                        <div className="divide-y divide-slate-100">
-                            {notifications.map((n) => (
-                                <div 
-                                    key={n.id} 
-                                    className={`p-4 transition-colors hover:bg-slate-50 cursor-pointer ${!n.isRead ? 'bg-blue-50/50' : ''}`}
-                                    onClick={() => !n.isRead && handleReadOne(n.id)}
-                                >
-                                    <div className="flex gap-3">
-                                        <div className={`mt-0.5 h-8 w-8 shrink-0 rounded-full flex items-center justify-center ${
-                                            n.title.includes('Crítico') ? 'bg-rose-100 text-rose-600' : 'bg-green-100 text-green-600'
-                                        }`}>
-                                            {n.title.includes('Crítico') ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
-                                        </div>
-                                        <div className="space-y-1 overflow-hidden">
-                                            <p className={`text-sm font-bold leading-none ${!n.isRead ? 'text-slate-900' : 'text-slate-500'}`}>
-                                                {n.title}
-                                            </p>
-                                            <p className="text-xs text-slate-500 line-clamp-2">
-                                                {n.content}
-                                            </p>
-                                            <div className="flex items-center gap-1 text-[10px] text-slate-400">
-                                                <Clock className="h-3 w-3" />
-                                                {new Date(n.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                            </div>
-                                        </div>
-                                        {!n.isRead && (
-                                            <div className="h-2 w-2 rounded-full bg-blue-600 mt-1.5 shrink-0" />
-                                        )}
-                                    </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {notifications.length === 0 ? (
+                    <div className="py-8 text-center text-muted-foreground">
+                        <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">Nenhuma notificação</p>
+                    </div>
+                ) : (
+                    <div className="max-h-96 overflow-y-auto">
+                        {notifications.slice(0, 10).map((n) => (
+                            <DropdownMenuItem 
+                                key={n.id} 
+                                className="flex flex-col items-start gap-1 p-3 cursor-pointer"
+                                onClick={() => handleMarkAsRead(n.id)}
+                            >
+                                <div className="flex items-center gap-2 w-full">
+                                    {!n.isRead && (
+                                        <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                                    )}
+                                    <span className="font-medium text-sm truncate flex-1">
+                                        {n.title}
+                                    </span>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </PopoverContent>
-        </Popover>
+                                <p className="text-xs text-muted-foreground line-clamp-2 ml-4">
+                                    {n.content}
+                                </p>
+                                <span className="text-xs text-muted-foreground ml-4">
+                                    {formatRelativeTime(n.createdAt)}
+                                </span>
+                            </DropdownMenuItem>
+                        ))}
+                    </div>
+                )}
+            </DropdownMenuContent>
+        </DropdownMenu>
     )
 }

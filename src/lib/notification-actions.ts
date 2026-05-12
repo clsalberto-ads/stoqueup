@@ -4,21 +4,52 @@ import { db } from "@/db";
 import { notifications } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { auth } from "./auth";
-import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 
-export async function getNotifications() {
-    const session = await auth.api.getSession();
-    if (!session) return [];
+export async function getNotifications(unreadOnly: boolean = true) {
+    try {
+        const cookieStore = await cookies()
+        const session = await auth.api.getSession({
+            headers: { cookie: cookieStore.toString() }
+        });
+        
+        if (!session) return [];
 
-    return await db.query.notifications.findMany({
-        where: eq(notifications.userId, session.user.id),
-        orderBy: [desc(notifications.createdAt)],
-        limit: 20
-    });
+        return await db.query.notifications.findMany({
+            where: unreadOnly 
+                ? and(eq(notifications.userId, session.user.id), eq(notifications.isRead, false))
+                : eq(notifications.userId, session.user.id),
+            orderBy: [desc(notifications.createdAt)],
+            limit: 20
+        });
+    } catch (error) {
+        console.error("Error getting notifications:", error);
+        return [];
+    }
+}
+
+export async function getUnreadCount(): Promise<number> {
+    try {
+        const cookieStore = await cookies()
+        const session = await auth.api.getSession({
+            headers: { cookie: cookieStore.toString() }
+        });
+        if (!session) return 0;
+
+        const result = await db.query.notifications.findMany({
+            where: and(eq(notifications.userId, session.user.id), eq(notifications.isRead, false))
+        });
+        return result.length;
+    } catch {
+        return 0;
+    }
 }
 
 export async function markAsRead(notificationId: string) {
-    const session = await auth.api.getSession();
+    const cookieStore = await cookies()
+    const session = await auth.api.getSession({
+        headers: { cookie: cookieStore.toString() }
+    });
     if (!session) throw new Error("Não autorizado");
 
     await db.update(notifications)
@@ -28,26 +59,23 @@ export async function markAsRead(notificationId: string) {
             eq(notifications.userId, session.user.id)
         ));
 
-    revalidatePath("/");
     return { success: true };
 }
 
 export async function markAllAsRead() {
-    const session = await auth.api.getSession();
+    const cookieStore = await cookies()
+    const session = await auth.api.getSession({
+        headers: { cookie: cookieStore.toString() }
+    });
     if (!session) throw new Error("Não autorizado");
 
     await db.update(notifications)
         .set({ isRead: true })
         .where(eq(notifications.userId, session.user.id));
 
-    revalidatePath("/");
     return { success: true };
 }
 
-/**
- * Função utilitária para criar notificações internamente.
- * Não é uma Server Action para ser chamada diretamente do cliente (sem "use server" explícito se for interna, mas aqui estamos em um arquivo "use server").
- */
 export async function createNotification(userId: string, title: string, content: string) {
     await db.insert(notifications).values({
         id: crypto.randomUUID(),

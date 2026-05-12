@@ -332,9 +332,8 @@ O coração do StoqueUp é a integração automática entre os módulos. Os flux
 | Componentes UI | Shadcn/UI |
 | Backend / API | Next.js API Routes |
 | ORM | Drizzle ORM |
-| Banco de Dados | PostgreSQL |
+| Banco de Dados | Supabase |
 | Autenticação | Better Auth |
-| Infra | Docker + Compose |
 | Estado Global | Zustand |
 | Queries / Cache | TanStack Query |
 | Charts | Shadcn/UI Charts |

@@ -8,13 +8,11 @@ import {
   Factory,
   BarChart3,
   Settings,
-  ChevronRight,
 } from "lucide-react"
-
-import { NotificationCenter } from "@/components/notifications/notification-center"
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -52,34 +50,21 @@ const data = {
       url: "/dashboard/metrics",
       icon: BarChart3,
     },
-    {
-      title: "Configurações",
-      url: "/dashboard/settings",
-      icon: Settings,
-      role: "admin",
-    },
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="icon" {...props} className="bg-slate-50">
-      <SidebarHeader>
-        <div className="flex items-center justify-between px-4 py-2">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white">
-              <Package className="h-5 w-5" />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-slate-900 group-data-[collapsible=icon]:hidden">StoqueUp</span>
-          </div>
-          <div className="group-data-[collapsible=icon]:hidden">
-            <NotificationCenter />
-          </div>
+    <Sidebar collapsible="icon" {...props} className="bg-sidebar">
+      <SidebarHeader className="flex-row flex-nowrap items-center gap-2 py-2 w-fit">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shrink-0">
+          <Package className="h-5 w-5" />
         </div>
+        <span className="text-xl font-bold tracking-tight text-sidebar-foreground group-data-[collapsible=icon]:hidden whitespace-nowrap">StoqueUp</span>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
+          <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {data.navMain.map((item) => (
@@ -94,6 +79,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton render={<a href="/dashboard/settings" />} tooltip="Configurações">
+              <Settings className="h-4 w-4" />
+              <span>Configurações</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )

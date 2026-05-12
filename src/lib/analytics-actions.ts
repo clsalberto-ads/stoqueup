@@ -1,46 +1,30 @@
 "use server"
 
 import { db } from "@/db";
-import { inventoryLogs, products } from "@/db/schema";
-import { eq, sql, and, desc } from "drizzle-orm";
+import { products, inventoryLogs } from "@/db/schema";
+import { eq, sql, gt, and } from "drizzle-orm";
 import { auth } from "./auth";
+import { headers } from "next/headers";
 
 /**
- * Retorna métricas detalhadas de um produto, incluindo média móvel e dias restantes.
+ * Função interna — calcula métricas de um produto sem verificar sessão.
+ * Chamada por getCompanyOverview que já autenticou o usuário.
  */
-export async function getProductMetrics(productId: string) {
-    const session = await auth.api.getSession();
-    if (!session) throw new Error("Não autorizado");
+async function computeProductMetrics(productId: string, daysRange: number = 30) {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysRange);
 
-    // Query para calcular média móvel de 30 dias considerando dias com zero vendas
-    // 1. Gerar série de datas (últimos 30 dias)
-    // 2. Fazer join com os logs de venda
-    // 3. Calcular a média
-    const metrics = await db.execute(sql`
-        WITH date_series AS (
-            SELECT generate_series(
-                CURRENT_DATE - INTERVAL '29 days',
-                CURRENT_DATE,
-                '1 day'
-            )::date AS day
-        ),
-        daily_sales AS (
-            SELECT 
-                DATE_TRUNC('day', "createdAt")::date AS day,
-                SUM(ABS(change)) AS qty
-            FROM inventory_logs
-            WHERE "productId" = ${productId} AND type = 'SALE'
-            GROUP BY 1
-        )
-        SELECT 
-            AVG(COALESCE(ds.qty, 0))::float AS average_30d
-        FROM date_series dr
-        LEFT JOIN daily_sales ds ON dr.day = ds.day
-    `);
+    const salesData = await db
+        .select({ qty: sql<number>`COALESCE(SUM(ABS(${inventoryLogs.change})), 0)` })
+        .from(inventoryLogs)
+        .where(and(
+            eq(inventoryLogs.productId, productId),
+            eq(inventoryLogs.type, "SALE"),
+            gt(inventoryLogs.createdAt, cutoffDate)
+        ));
 
-    const average30d = (metrics[0] as any)?.average_30d || 0;
-    
-    // Buscar estoque atual
+    const average30d = Number(salesData[0]?.qty ?? 0) / daysRange;
+
     const product = await db.query.products.findFirst({
         where: eq(products.id, productId)
     });
@@ -48,11 +32,10 @@ export async function getProductMetrics(productId: string) {
     if (!product) throw new Error("Produto não encontrado");
 
     // Cálculo de Dias Restantes (Runway)
-    const daysRemaining = average30d > 0 
-        ? Math.floor(product.currentStock / average30d) 
-        : (product.currentStock > 0 ? 999 : 0); // 999 indica estoque "infinito" se não há vendas
+    const daysRemaining = average30d > 0
+        ? Math.floor(product.currentStock / average30d)
+        : (product.currentStock > 0 ? 999 : 0); // 999 = estoque sem consumo registrado
 
-    // Determinar Status do Semáforo
     let status: 'CRITICAL' | 'WARNING' | 'HEALTHY' = 'HEALTHY';
     if (daysRemaining < 3) status = 'CRITICAL';
     else if (daysRemaining <= 7) status = 'WARNING';
@@ -67,27 +50,60 @@ export async function getProductMetrics(productId: string) {
 }
 
 /**
- * Retorna uma visão geral da empresa para o Dashboard.
+ * Retorna métricas detalhadas de um produto (versão pública com auth).
  */
-export async function getCompanyOverview() {
-    const session = await auth.api.getSession();
+export async function getProductMetrics(productId: string, daysRange: number = 30) {
+    const session = await auth.api.getSession({
+        headers: await headers()
+    });
     if (!session) throw new Error("Não autorizado");
 
-    // 1. Total de vendas nos últimos 30 dias
-    const totalSales = await db.execute(sql`
-        SELECT SUM(ABS(change)) as total
-        FROM inventory_logs
-        WHERE type = 'SALE' AND "createdAt" > NOW() - INTERVAL '30 days'
-    `);
+    return computeProductMetrics(productId, daysRange);
+}
 
-    // 2. Saúde do estoque (Contagem por status)
+/**
+ * Retorna uma visão geral da empresa para o Dashboard.
+ */
+export async function getCompanyOverview(daysRange: number = 30) {
+    const session = await auth.api.getSession({
+        headers: await headers()
+    });
+    if (!session) throw new Error("Não autorizado");
+
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysRange);
+
+    const totalSalesResult = await db
+        .select({ total: sql<number>`SUM(${inventoryLogs.change})` })
+        .from(inventoryLogs)
+        .where(and(
+            eq(inventoryLogs.type, "SALE"),
+            gt(inventoryLogs.createdAt, cutoffDate)
+        ));
+    
+    const totalSales = Math.abs(Number(totalSalesResult[0]?.total ?? 0));
+
+    // Total de receita (valor acumulado em vendas)
+    const revenueResult = await db
+        .select({
+            total: sql<number>`COALESCE(SUM(ABS(${inventoryLogs.change}) * ${products.price} / 100), 0)`
+        })
+        .from(inventoryLogs)
+        .innerJoin(products, eq(inventoryLogs.productId, products.id))
+        .where(and(
+            eq(inventoryLogs.type, "SALE"),
+            gt(inventoryLogs.createdAt, cutoffDate)
+        ));
+
+    const totalRevenue = Number(revenueResult[0]?.total ?? 0);
+
+    // 2. Saúde do estoque — usa função interna (sem dupla verificação de sessão)
     const allProducts = await db.select().from(products);
     const health = { critical: 0, warning: 0, healthy: 0 };
 
-    // Para o overview, vamos processar em paralelo as métricas de risco
     const productsWithMetrics = await Promise.all(
         allProducts.map(async (p) => {
-            const m = await getProductMetrics(p.id);
+            const m = await computeProductMetrics(p.id, daysRange);
             if (m.status === 'CRITICAL') health.critical++;
             else if (m.status === 'WARNING') health.warning++;
             else health.healthy++;
@@ -95,35 +111,35 @@ export async function getCompanyOverview() {
         })
     );
 
-    // 3. Vendas diárias (últimos 15 dias) para o gráfico
-    const chartData = await db.execute(sql`
-        WITH date_series AS (
-            SELECT generate_series(
-                CURRENT_DATE - INTERVAL '14 days',
-                CURRENT_DATE,
-                '1 day'
-            )::date AS day
-        ),
-        daily_sales AS (
-            SELECT 
-                DATE_TRUNC('day', "createdAt")::date AS day,
-                SUM(ABS(change)) AS qty
-            FROM inventory_logs
-            WHERE type = 'SALE'
-            GROUP BY 1
-        )
-        SELECT 
-            TO_CHAR(dr.day, 'DD/MM') as date,
-            COALESCE(ds.qty, 0)::int as sales
-        FROM date_series dr
-        LEFT JOIN daily_sales ds ON dr.day = ds.day
-        ORDER BY dr.day ASC
-    `);
+    // 3. Vendas diárias (período configurado) para o gráfico
+    const chartDays = Math.max(daysRange, 15);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - chartDays);
+
+    const dailySalesResult = await db
+        .select({
+            day: sql<string>`TO_CHAR(${inventoryLogs.createdAt}, 'DD/MM')`,
+            qty: sql<number>`COALESCE(SUM(ABS(${inventoryLogs.change})), 0)`
+        })
+        .from(inventoryLogs)
+        .where(and(
+            eq(inventoryLogs.type, "SALE"),
+            gt(inventoryLogs.createdAt, startDate)
+        ))
+        .groupBy(sql`TO_CHAR(${inventoryLogs.createdAt}, 'DD/MM')`)
+        .orderBy(sql`TO_CHAR(${inventoryLogs.createdAt}, 'DD/MM')`);
+
+    const chartData: { date: string; sales: number }[] = dailySalesResult.map(row => ({
+        date: row.day as string,
+        sales: Number(row.qty)
+    }));
 
     return {
-        totalSales30d: (totalSales[0] as any)?.total || 0,
+        totalSales30d: totalSales,
+        totalRevenue,
+        salesDaysRange: daysRange,
         health,
-        chartData: chartData as any[],
+        chartData,
         topProducts: productsWithMetrics
             .sort((a, b) => b.metrics.average30d - a.metrics.average30d)
             .slice(0, 5)

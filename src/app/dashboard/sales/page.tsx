@@ -1,81 +1,138 @@
+export const dynamic = 'force-dynamic'
 import { db } from "@/db"
 import { inventoryLogs, products } from "@/db/schema"
-import { eq, desc } from "drizzle-orm"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShoppingCart } from "lucide-react"
+import { eq, desc, and, sql } from "drizzle-orm"
 
-export default async function SalesPage() {
-    const sales = await db
+import SalesPageClient from "./sales-page-client"
+
+const ITEMS_PER_PAGE = 8
+
+interface GroupedSale {
+    id: string
+    createdAt: Date
+    items: {
+        id: string
+        productName: string
+        quantity: number
+        price: number
+        subtotal: number
+    }[]
+    totalItems: number
+    totalValue: number
+}
+
+async function getSalesData(page: number) {
+    const offset = (page - 1) * ITEMS_PER_PAGE
+
+    const whereClause = eq(inventoryLogs.type, "SALE")
+
+    const groupedQuery = db
+        .select({
+            dateKey: sql<string>`TO_CHAR(${inventoryLogs.createdAt}, 'YYYY-MM-DD"T"HH24:MI')`,
+            createdAt: sql<Date>`MAX(${inventoryLogs.createdAt})`,
+        })
+        .from(inventoryLogs)
+        .where(whereClause)
+        .groupBy(sql`TO_CHAR(${inventoryLogs.createdAt}, 'YYYY-MM-DD"T"HH24:MI')`)
+        .orderBy(desc(sql`MAX(${inventoryLogs.createdAt})`))
+
+    const countResult = await db
+        .select({ count: sql<number>`COUNT(*)::int` })
+        .from(inventoryLogs)
+        .where(whereClause)
+
+    const totalGroups = countResult[0]?.count ?? 0
+    const totalPages = Math.ceil(totalGroups / ITEMS_PER_PAGE)
+
+    if (totalGroups === 0) {
+        return { sales: [], totalCount: 0, totalPages, page }
+    }
+
+    const groupedRows = await groupedQuery.limit(ITEMS_PER_PAGE).offset(offset)
+
+    if (groupedRows.length === 0) {
+        return { sales: [], totalCount: totalGroups, totalPages, page }
+    }
+
+    const salesMap: Record<string, GroupedSale> = {}
+    const groupedDateKeys = groupedRows.map(r => r.dateKey)
+
+    for (const row of groupedRows) {
+        salesMap[row.dateKey] = {
+            id: row.dateKey,
+            createdAt: new Date(row.createdAt),
+            items: [],
+            totalItems: 0,
+            totalValue: 0
+        }
+    }
+
+    const allItemsResult = await db
         .select({
             id: inventoryLogs.id,
-            productName: products.name,
-            quantity: inventoryLogs.change,
+            productId: inventoryLogs.productId,
+            change: inventoryLogs.change,
             createdAt: inventoryLogs.createdAt,
+            productName: products.name,
             price: products.price,
         })
         .from(inventoryLogs)
         .innerJoin(products, eq(inventoryLogs.productId, products.id))
-        .where(eq(inventoryLogs.type, "SALE"))
-        .orderBy(desc(inventoryLogs.createdAt))
+        .where(whereClause)
+
+    for (const item of allItemsResult) {
+        const itemDateKey = new Date(item.createdAt).toISOString().slice(0, 16)
+        const matchingKey = groupedDateKeys.find(k => k.startsWith(itemDateKey))
+
+        if (matchingKey && salesMap[matchingKey]) {
+            const qty = Math.abs(item.change || 0)
+            const subtotal = qty * item.price
+
+            salesMap[matchingKey].items.push({
+                id: item.id,
+                productName: item.productName,
+                quantity: qty,
+                price: item.price,
+                subtotal
+            })
+
+            salesMap[matchingKey].totalItems += qty
+            salesMap[matchingKey].totalValue += subtotal
+        }
+    }
+
+    const sales = Object.values(salesMap)
+        .map(s => ({
+            ...s,
+            items: s.items.sort((a, b) => a.productName.localeCompare(b.productName))
+        }))
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+
+    return { sales, totalCount: totalGroups, totalPages, page }
+}
+
+export default async function SalesPage({ searchParams }: { searchParams: { page?: string } }) {
+    const page = parseInt(searchParams.page || "1", 10)
+
+    const { sales, totalCount, totalPages } = await getSalesData(page)
+
+    const availableProducts = await db
+        .select({
+            id: products.id,
+            name: products.name,
+            currentStock: products.currentStock,
+            price: products.price,
+        })
+        .from(products)
+        .orderBy(products.name)
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight text-slate-900">Histórico de Vendas</h1>
-                <p className="text-slate-500 mt-2">
-                    Acompanhe todas as saídas de estoque e vendas realizadas.
-                </p>
-            </div>
-
-            <Card className="border-slate-200 shadow-sm">
-                <CardHeader>
-                    <CardTitle>Vendas Recentes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {sales.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-16 text-center">
-                            <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center mb-4 text-slate-400">
-                                <ShoppingCart className="h-8 w-8" />
-                            </div>
-                            <h3 className="text-lg font-semibold text-slate-900">Nenhuma venda registrada</h3>
-                            <p className="text-slate-500 max-w-xs mt-1">
-                                As vendas realizadas através do catálogo de produtos aparecerão aqui.
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="relative overflow-x-auto">
-                            <table className="w-full text-sm text-left text-slate-500">
-                                <thead className="text-xs text-slate-700 uppercase bg-slate-50 border-b border-slate-200">
-                                    <tr>
-                                        <th className="px-6 py-3">Produto</th>
-                                        <th className="px-6 py-3">Quantidade</th>
-                                        <th className="px-6 py-3">Total Estimado</th>
-                                        <th className="px-6 py-3">Data</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {sales.map((sale) => (
-                                        <tr key={sale.id} className="bg-white border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                                            <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
-                                                {sale.productName}
-                                            </td>
-                                            <td className="px-6 py-4 text-slate-700 font-semibold">
-                                                {Math.abs(sale.quantity)} un.
-                                            </td>
-                                            <td className="px-6 py-4 text-blue-600 font-bold">
-                                                {((Math.abs(sale.quantity) * sale.price) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                                            </td>
-                                            <td className="px-6 py-4 text-slate-500">
-                                                {new Date(sale.createdAt).toLocaleString('pt-BR')}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
+        <SalesPageClient
+            initialSales={sales}
+            initialProducts={availableProducts}
+            totalCount={totalCount}
+            totalPages={totalPages}
+            currentPage={page}
+        />
     )
 }
