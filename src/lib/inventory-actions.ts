@@ -53,6 +53,9 @@ export async function sellProduct(productId: string, quantity: number) {
 
             // 3. Verificar gatilho de produção (qtdMinima)
             if (product.currentStock <= product.qtdMinima) {
+                await tx.update(products)
+                    .set({ statusVenda: false, updatedAt: new Date() })
+                    .where(eq(products.id, product.id))
                 // Verificar se já existe uma tarefa pendente para este produto
                 const existingTask = await tx
                     .select()
@@ -151,6 +154,10 @@ export async function sellMultipleProducts(items: { productId: string, quantity:
 
                 // 3. Verificar gatilho de produção
                 if (product.currentStock <= product.qtdMinima) {
+                    await tx.update(products)
+                        .set({ statusVenda: false, updatedAt: transactionTime })
+                        .where(eq(products.id, product.id))
+
                     const existingTask = await tx
                         .select()
                         .from(productionTasks)
@@ -253,20 +260,18 @@ export async function completeProduction(taskId: string, productId: string, actu
 
             if (!product) throw new Error("Produto não encontrado");
 
-            // 2. Calcular novo estoque com trava de segurança (D-05)
-            let newStock = product.currentStock + actualQuantity;
+            // 2. Atualizar estoque com trava de segurança atômica (D-05)
+            const cap = product.qtdMaxima;
+            const diff = product.currentStock + actualQuantity - cap;
             let adjustmentMessage = "";
 
-            if (newStock > product.qtdMaxima) {
-                const diff = newStock - product.qtdMaxima;
-                newStock = product.qtdMaxima;
-                adjustmentMessage = ` (Estoque limitado ao máximo de ${product.qtdMaxima}. Excesso de ${diff} ignorado)`;
+            if (diff > 0) {
+                adjustmentMessage = ` (Estoque limitado ao máximo de ${cap}. Excesso de ${diff} ignorado)`;
             }
 
-            // 3. Atualizar estoque
             await tx.update(products)
-                .set({ 
-                    currentStock: newStock,
+                .set({
+                    currentStock: sql`LEAST(${products.currentStock} + ${actualQuantity}, ${cap})`,
                     updatedAt: new Date()
                 })
                 .where(eq(products.id, productId));
@@ -304,7 +309,18 @@ export async function completeProduction(taskId: string, productId: string, actu
                 createdAt: new Date()
             });
 
-            // 6. Notificar conclusão
+            // 6. Reativar venda se estoque atingiu minParaVenda
+            const updatedProduct = await tx.query.products.findFirst({
+                where: eq(products.id, productId)
+            })
+
+            if (updatedProduct && updatedProduct.currentStock >= updatedProduct.minParaVenda && !updatedProduct.statusVenda) {
+                await tx.update(products)
+                    .set({ statusVenda: true, updatedAt: new Date() })
+                    .where(eq(products.id, productId))
+            }
+
+            // 7. Notificar conclusão
             await createNotification(
                 session.user.id,
                 "Produção Concluída",
@@ -375,6 +391,7 @@ export async function createManualProductionTask(productId: string, quantity: nu
 
 interface SaleItemUpdate {
     id: string
+    productId: string
     productName: string
     quantity: number
     price: number
@@ -383,6 +400,7 @@ interface SaleItemUpdate {
 
 interface SaleItemOriginal {
     id: string
+    productId: string
     productName: string
     quantity: number
     price: number
@@ -402,8 +420,21 @@ export async function updateSale(saleId: string, updatedItems: SaleItemUpdate[],
         await db.transaction(async (tx) => {
             for (const originalItem of originalItems) {
                 const updatedItem = updatedItems.find(i => i.id === originalItem.id)
-                if (!updatedItem) {
-                    throw new Error(`Item não encontrado: ${originalItem.id}`)
+
+                if (!updatedItem || updatedItem.quantity <= 0) {
+                    await tx
+                        .update(products)
+                        .set({
+                            currentStock: sql`${products.currentStock} + ${originalItem.quantity}`,
+                            updatedAt: new Date()
+                        })
+                        .where(eq(products.id, originalItem.productId))
+
+                    await tx
+                        .delete(inventoryLogs)
+                        .where(eq(inventoryLogs.id, originalItem.id))
+
+                    continue
                 }
 
                 if (originalItem.quantity === updatedItem.quantity) {
@@ -419,10 +450,10 @@ export async function updateSale(saleId: string, updatedItems: SaleItemUpdate[],
                             currentStock: sql`${products.currentStock} + ${Math.abs(quantityDiff)}`,
                             updatedAt: new Date()
                         })
-                        .where(eq(products.id, originalItem.id))
+                        .where(eq(products.id, originalItem.productId))
                 } else {
                     const product = await tx.query.products.findFirst({
-                        where: eq(products.id, originalItem.id)
+                        where: eq(products.id, originalItem.productId)
                     })
 
                     if (!product) {
@@ -439,7 +470,7 @@ export async function updateSale(saleId: string, updatedItems: SaleItemUpdate[],
                             currentStock: sql`${products.currentStock} - ${quantityDiff}`,
                             updatedAt: new Date()
                         })
-                        .where(eq(products.id, originalItem.id))
+                        .where(eq(products.id, originalItem.productId))
                 }
 
                 await tx

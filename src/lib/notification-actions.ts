@@ -4,13 +4,12 @@ import { db } from "@/db";
 import { notifications } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { auth } from "./auth";
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 
 export async function getNotifications(unreadOnly: boolean = true) {
     try {
-        const cookieStore = await cookies()
         const session = await auth.api.getSession({
-            headers: { cookie: cookieStore.toString() }
+            headers: await headers()
         });
         
         if (!session) return [];
@@ -30,9 +29,8 @@ export async function getNotifications(unreadOnly: boolean = true) {
 
 export async function getUnreadCount(): Promise<number> {
     try {
-        const cookieStore = await cookies()
         const session = await auth.api.getSession({
-            headers: { cookie: cookieStore.toString() }
+            headers: await headers()
         });
         if (!session) return 0;
 
@@ -46,9 +44,8 @@ export async function getUnreadCount(): Promise<number> {
 }
 
 export async function markAsRead(notificationId: string) {
-    const cookieStore = await cookies()
     const session = await auth.api.getSession({
-        headers: { cookie: cookieStore.toString() }
+        headers: await headers()
     });
     if (!session) throw new Error("Não autorizado");
 
@@ -63,9 +60,8 @@ export async function markAsRead(notificationId: string) {
 }
 
 export async function markAllAsRead() {
-    const cookieStore = await cookies()
     const session = await auth.api.getSession({
-        headers: { cookie: cookieStore.toString() }
+        headers: await headers()
     });
     if (!session) throw new Error("Não autorizado");
 

@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useCallback } from "react"
-import { UploadButton } from "@/lib/uploadthing"
+import { useState, useRef, useCallback } from "react"
 import { ImagePlus, X, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import { uploadProductImage } from "@/lib/upload-actions"
 
 interface ImageUploaderProps {
     value: string | null
@@ -14,92 +14,102 @@ interface ImageUploaderProps {
 
 export function ImageUploader({ value, onChange, disabled }: ImageUploaderProps) {
     const [isUploading, setIsUploading] = useState(false)
+    const [preview, setPreview] = useState<string | null>(null)
+    const inputRef = useRef<HTMLInputElement>(null)
 
-    const handleUploadComplete = useCallback((res: { url: string }[]) => {
-        if (res && res[0]) {
-            onChange(res[0].url)
+    const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        if (!file.type.startsWith("image/")) {
+            alert("Apenas imagens são permitidas")
+            return
         }
-        setIsUploading(false)
-    }, [onChange])
 
-    const handleUploadError = useCallback((error: Error) => {
-        console.error("Upload error:", error)
+        if (file.size > 4 * 1024 * 1024) {
+            alert("A imagem deve ter no máximo 4MB")
+            return
+        }
+
+        setIsUploading(true)
+        setPreview(URL.createObjectURL(file))
+
+        const formData = new FormData()
+        formData.set("file", file)
+
+        const result = await uploadProductImage(formData)
+
+        if ("url" in result) {
+            onChange(result.url)
+        } else {
+            alert(result.error)
+            setPreview(null)
+        }
+
         setIsUploading(false)
-    }, [])
+        if (inputRef.current) inputRef.current.value = ""
+    }, [onChange])
 
     const handleRemove = useCallback(() => {
         onChange(null)
+        setPreview(null)
     }, [onChange])
+
+    const displayUrl = preview || value
 
     return (
         <div className="space-y-2">
-            {value ? (
-                <div className="relative w-full h-40 rounded-lg overflow-hidden bg-muted border">
-                    <Image 
-                        src={value} 
-                        alt="Product image" 
-                        fill 
+            {displayUrl ? (
+                <div className="relative w-full h-40 rounded-xl overflow-hidden bg-muted border shadow-sm group/image">
+                    <Image
+                        src={displayUrl}
+                        alt="Product image"
+                        fill
+                        sizes="(max-width: 640px) 100vw, 400px"
                         className="object-cover"
                     />
                     {!disabled && (
                         <button
                             type="button"
                             onClick={handleRemove}
-                            className="absolute top-2 right-2 p-1 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
+                            className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 text-foreground opacity-0 group-hover/image:opacity-100 hover:bg-destructive hover:text-destructive-foreground transition-all"
                         >
-                            <X className="h-4 w-4" />
+                            <X className="h-3.5 w-3.5" />
                         </button>
                     )}
                 </div>
             ) : (
-                <div className={cn(
-                    "w-full h-40 rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-colors",
-                    disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-muted/50 hover:border-muted-foreground/50"
-                )}>
-                    <UploadButton
-                        endpoint="productImage"
-                        onUploadBegin={() => setIsUploading(true)}
-                        onClientUploadComplete={handleUploadComplete}
-                        onUploadError={handleUploadError}
-                        content={{
-                            button({ isUploading: uploading }) {
-                                return (
-                                    <div className="flex items-center gap-2">
-                                        {uploading || isUploading ? (
-                                            <>
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                <span>Enviando...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <ImagePlus className="h-4 w-4" />
-                                                <span>Adicionar Imagem</span>
-                                            </>
-                                        )}
-                                    </div>
-                                )
-                            }
-                        }}
-                        appearance={{
-                            container: {
-                                width: "100%",
-                                height: "100%",
-                            },
-                            button: {
-                                width: "100%",
-                                height: "100%",
-                                background: "transparent",
-                                border: "none",
-                            },
-                            allowedContent: {
-                                display: "none",
-                            }
-                        }}
+                <div
+                    className={cn(
+                        "w-full h-40 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1.5 transition-colors relative group",
+                        disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-muted/50 hover:border-muted-foreground/50"
+                    )}
+                    onClick={() => !disabled && !isUploading && inputRef.current?.click()}
+                >
+                    <input
+                        ref={inputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileSelect}
                         disabled={disabled}
                     />
-                    <span className="text-xs text-muted-foreground">
-                        ou arraste uma imagem
-                    </span>
+                    {isUploading ? (
+                        <>
+                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">Enviando...</span>
+                        </>
+                    ) : (
+                        <>
+                            <div className="p-2 rounded-full bg-muted-foreground/10 group-hover:bg-muted-foreground/20 transition-colors">
+                                <ImagePlus className="h-5 w-5 text-muted-foreground/60" />
+                            </div>
+                            <span className="text-sm font-medium">Adicionar Imagem</span>
+                            <span className="text-xs text-muted-foreground">
+                                PNG, JPG ou WEBP até 4MB
+                            </span>
+                        </>
+                    )}
                 </div>
             )}
         </div>

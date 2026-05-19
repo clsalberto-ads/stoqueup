@@ -1,7 +1,6 @@
 "use client"
 
 import { Suspense, useState, useTransition } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
 import { RegisterSaleModal } from "@/components/sales/register-sale-modal"
 import { SalesTable, GroupedSale } from "@/components/sales/sales-table"
@@ -18,25 +17,13 @@ interface SalesPageContentProps {
         currentStock: number
         price: number
     }[]
-    totalCount: number
-    totalPages: number
-    currentPage: number
 }
 
-function SalesPageContent({ initialSales, initialProducts, totalPages, currentPage }: SalesPageContentProps) {
-    const router = useRouter()
-    const searchParams = useSearchParams()
-
+function SalesPageContent({ initialSales, initialProducts }: SalesPageContentProps) {
     const [isEditing, setIsEditing] = useState(false)
     const [editingSale, setEditingSale] = useState<GroupedSale | null>(null)
     const [editedItems, setEditedItems] = useState<GroupedSale['items']>([])
     const [isPending, startTransition] = useTransition()
-
-    const handlePageChange = (newPage: number) => {
-        const params = new URLSearchParams(searchParams.toString())
-        params.set("page", newPage.toString())
-        router.push(`/dashboard/sales?${params.toString()}`)
-    }
 
     const handleEditSale = (sale: GroupedSale) => {
         setEditingSale(sale)
@@ -63,7 +50,6 @@ function SalesPageContent({ initialSales, initialProducts, totalPages, currentPa
                 toast.success("Venda atualizada com sucesso!")
                 setIsEditing(false)
                 setEditingSale(null)
-                router.refresh()
             } else {
                 toast.error(`Erro: ${result.error}`)
             }
@@ -82,7 +68,7 @@ function SalesPageContent({ initialSales, initialProducts, totalPages, currentPa
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-foreground">Histórico de Vendas</h1>
                     <p className="text-muted-foreground mt-2">
-                        Acompanhe todas as saídas de estoque e vendas realizadas.
+                        Últimas vendas no período configurado.
                     </p>
                 </div>
                 <RegisterSaleModal products={initialProducts} />
@@ -93,11 +79,6 @@ function SalesPageContent({ initialSales, initialProducts, totalPages, currentPa
                 showCard={true}
                 title="Vendas Recentes"
                 description="Lista das transações de venda"
-                pagination={totalPages > 1 ? {
-                    page: currentPage,
-                    totalPages,
-                    onPageChange: handlePageChange
-                } : undefined}
                 onEditSale={handleEditSale}
             />
 
@@ -169,15 +150,12 @@ function SalesPageContent({ initialSales, initialProducts, totalPages, currentPa
     )
 }
 
-export default function SalesPageClient({ initialSales, initialProducts, totalCount, totalPages, currentPage }: SalesPageContentProps) {
+export default function SalesPageClient({ initialSales, initialProducts }: SalesPageContentProps) {
     return (
         <Suspense fallback={<div className="flex items-center justify-center p-8">Carregando...</div>}>
             <SalesPageContent
                 initialSales={initialSales}
                 initialProducts={initialProducts}
-                totalCount={totalCount}
-                totalPages={totalPages}
-                currentPage={currentPage}
             />
         </Suspense>
     )

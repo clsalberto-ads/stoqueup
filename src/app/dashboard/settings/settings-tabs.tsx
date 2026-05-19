@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, startTransition } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -13,6 +13,7 @@ import { authClient } from "@/lib/auth-client"
 import { toast } from "sonner"
 import { Loader2, Settings, Building2, User, BarChart3, Clock, Plus, Shield } from "lucide-react"
 import { usePreferences } from "@/hooks/use-preferences"
+import { updateOrgSalesDaysRange } from "@/lib/analytics-actions"
 
 interface UserListItem {
     id: string
@@ -57,7 +58,7 @@ export function SettingsTabs({ user, organization }: { user: UserListItem, organ
 
     useEffect(() => {
         if (user.role === "admin") {
-            fetchUsers()
+            startTransition(() => fetchUsers())
         }
     }, [user.role, fetchUsers])
 
@@ -76,6 +77,7 @@ export function SettingsTabs({ user, organization }: { user: UserListItem, organ
     const handleSavePreferences = async (days: number) => {
         setIsLoading(true)
         try {
+            await updateOrgSalesDaysRange(days)
             setSalesDaysRange(days)
             toast.success("Preferências salvas com sucesso!")
             window.location.href = `/dashboard?days=${days}`

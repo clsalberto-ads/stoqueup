@@ -1,15 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, startTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { Plus, Package, Pencil } from "lucide-react"
+import { Plus, Package, Pencil, Trash2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { ProductCard } from "@/components/products/product-card"
 import { toast } from "sonner"
-import { updateProduct } from "@/lib/product-actions"
+import { updateProduct, deleteProduct } from "@/lib/product-actions"
 import { ImageUploader } from "@/components/ui/image-uploader"
 
 interface ProductWithMetrics {
@@ -53,14 +53,16 @@ export function ProductsClient({ products }: ProductsClientProps) {
 
   useEffect(() => {
     if (!isCreateOpen) {
-      setFormData({
-        name: "",
-        description: "",
-        price: 0,
-        qtdMinima: 0,
-        qtdMaxima: 0,
-        minParaVenda: 0,
-        imageUrl: null,
+      startTransition(() => {
+        setFormData({
+          name: "",
+          description: "",
+          price: 0,
+          qtdMinima: 0,
+          qtdMaxima: 0,
+          minParaVenda: 0,
+          imageUrl: null,
+        })
       })
     }
   }, [isCreateOpen])
@@ -183,7 +185,7 @@ export function ProductsClient({ products }: ProductsClientProps) {
       )}
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5" />
@@ -193,7 +195,7 @@ export function ProductsClient({ products }: ProductsClientProps) {
               Cadastre as informações básicas e os limites de automação para este produto.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="flex-1 overflow-y-auto space-y-4 py-4">
             <Card>
               <CardHeader className="pb-3">
@@ -203,45 +205,47 @@ export function ProductsClient({ products }: ProductsClientProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="prod-name">Nome do Produto</Label>
-                  <Input 
-                    id="prod-name" 
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Ex: Bolo de Chocolate"
-                  />
-                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="prod-name">Nome do Produto</Label>
+                    <Input
+                      id="prod-name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Ex: Bolo de Chocolate"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="prod-desc">Descrição (opcional)</Label>
-                  <Input 
-                    id="prod-desc" 
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Ex: Bolo de chocolate com cobertura"
-                  />
-                </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="prod-desc">Descrição (opcional)</Label>
+                    <Input
+                      id="prod-desc"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Ex: Bolo de chocolate com cobertura"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label>Imagem do Produto</Label>
-                  <ImageUploader 
-                    value={formData.imageUrl}
-                    onChange={(url) => setFormData({ ...formData, imageUrl: url })}
-                    disabled={isSubmitting}
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="prod-price">Preço de Venda (R$)</Label>
+                    <Input
+                      id="prod-price"
+                      type="number"
+                      step="0.01"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                      placeholder="0,00"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="prod-price">Preço de Venda (R$)</Label>
-                  <Input 
-                    id="prod-price" 
-                    type="number" 
-                    step="0.01"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                    placeholder="0,00"
-                  />
+                  <div className="space-y-2">
+                    <Label>Imagem do Produto</Label>
+                    <ImageUploader
+                      value={formData.imageUrl}
+                      onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                      disabled={isSubmitting}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -256,34 +260,34 @@ export function ProductsClient({ products }: ProductsClientProps) {
               <CardContent>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="prod-qtdmin" className="text-sm">Mínima</Label>
-                    <Input 
-                      id="prod-qtdmin" 
+                    <Label htmlFor="prod-qtdmin">Mínima</Label>
+                    <p className="text-xs text-muted-foreground -mt-1">Dispara produção automática</p>
+                    <Input
+                      id="prod-qtdmin"
                       type="number"
                       value={formData.qtdMinima}
                       onChange={(e) => setFormData({ ...formData, qtdMinima: parseInt(e.target.value) || 0 })}
                     />
-                    <p className="text-xs text-muted-foreground">Dispara produção</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="prod-minvenda" className="text-sm">Mín. Venda</Label>
-                    <Input 
-                      id="prod-minvenda" 
+                    <Label htmlFor="prod-minvenda">Mín. p/ Venda</Label>
+                    <p className="text-xs text-muted-foreground -mt-1">Libera venda quando atingir</p>
+                    <Input
+                      id="prod-minvenda"
                       type="number"
                       value={formData.minParaVenda}
                       onChange={(e) => setFormData({ ...formData, minParaVenda: parseInt(e.target.value) || 0 })}
                     />
-                    <p className="text-xs text-muted-foreground">Libera venda</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="prod-qtdmax" className="text-sm">Máxima</Label>
-                    <Input 
-                      id="prod-qtdmax" 
+                    <Label htmlFor="prod-qtdmax">Máxima</Label>
+                    <p className="text-xs text-muted-foreground -mt-1">Limite máximo do estoque</p>
+                    <Input
+                      id="prod-qtdmax"
                       type="number"
                       value={formData.qtdMaxima}
                       onChange={(e) => setFormData({ ...formData, qtdMaxima: parseInt(e.target.value) || 0 })}
                     />
-                    <p className="text-xs text-muted-foreground">Limite estoque</p>
                   </div>
                 </div>
               </CardContent>
@@ -294,8 +298,8 @@ export function ProductsClient({ products }: ProductsClientProps) {
             <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
               Cancelar
             </Button>
-            <Button 
-              className="bg-primary hover:bg-primary/80" 
+            <Button
+              className="bg-primary hover:bg-primary/80"
               disabled={isSubmitting}
               onClick={handleSubmit}
             >
@@ -306,7 +310,7 @@ export function ProductsClient({ products }: ProductsClientProps) {
       </Dialog>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="h-5 w-5" />
@@ -316,7 +320,7 @@ export function ProductsClient({ products }: ProductsClientProps) {
               Atualize as informações do produto e os limites de estoque.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="flex-1 overflow-y-auto space-y-4 py-4">
             <Card>
               <CardHeader className="pb-3">
@@ -326,45 +330,47 @@ export function ProductsClient({ products }: ProductsClientProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-name">Nome do Produto</Label>
-                  <Input 
-                    id="edit-name" 
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Ex: Bolo de Chocolate"
-                  />
-                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="edit-name">Nome do Produto</Label>
+                    <Input
+                      id="edit-name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Ex: Bolo de Chocolate"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="edit-desc">Descrição (opcional)</Label>
-                  <Input 
-                    id="edit-desc" 
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Ex: Bolo de chocolate com cobertura"
-                  />
-                </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="edit-desc">Descrição (opcional)</Label>
+                    <Input
+                      id="edit-desc"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Ex: Bolo de chocolate com cobertura"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label>Imagem do Produto</Label>
-                  <ImageUploader 
-                    value={formData.imageUrl}
-                    onChange={(url) => setFormData({ ...formData, imageUrl: url })}
-                    disabled={isSubmitting}
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-price">Preço de Venda (R$)</Label>
+                    <Input
+                      id="edit-price"
+                      type="number"
+                      step="0.01"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                      placeholder="0,00"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="edit-price">Preço de Venda (R$)</Label>
-                  <Input 
-                    id="edit-price" 
-                    type="number" 
-                    step="0.01"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                    placeholder="0,00"
-                  />
+                  <div className="space-y-2">
+                    <Label>Imagem do Produto</Label>
+                    <ImageUploader
+                      value={formData.imageUrl}
+                      onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                      disabled={isSubmitting}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -379,51 +385,76 @@ export function ProductsClient({ products }: ProductsClientProps) {
               <CardContent>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="edit-qtdmin" className="text-sm">Mínima</Label>
-                    <Input 
-                      id="edit-qtdmin" 
+                    <Label htmlFor="edit-qtdmin">Mínima</Label>
+                    <p className="text-xs text-muted-foreground -mt-1">Dispara produção automática</p>
+                    <Input
+                      id="edit-qtdmin"
                       type="number"
                       value={formData.qtdMinima}
                       onChange={(e) => setFormData({ ...formData, qtdMinima: parseInt(e.target.value) || 0 })}
                     />
-                    <p className="text-xs text-muted-foreground">Dispara produção</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-minvenda" className="text-sm">Mín. Venda</Label>
-                    <Input 
-                      id="edit-minvenda" 
+                    <Label htmlFor="edit-minvenda">Mín. p/ Venda</Label>
+                    <p className="text-xs text-muted-foreground -mt-1">Libera venda quando atingir</p>
+                    <Input
+                      id="edit-minvenda"
                       type="number"
                       value={formData.minParaVenda}
                       onChange={(e) => setFormData({ ...formData, minParaVenda: parseInt(e.target.value) || 0 })}
                     />
-                    <p className="text-xs text-muted-foreground">Libera venda</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-qtdmax" className="text-sm">Máxima</Label>
-                    <Input 
-                      id="edit-qtdmax" 
+                    <Label htmlFor="edit-qtdmax">Máxima</Label>
+                    <p className="text-xs text-muted-foreground -mt-1">Limite máximo do estoque</p>
+                    <Input
+                      id="edit-qtdmax"
                       type="number"
                       value={formData.qtdMaxima}
                       onChange={(e) => setFormData({ ...formData, qtdMaxima: parseInt(e.target.value) || 0 })}
                     />
-                    <p className="text-xs text-muted-foreground">Limite estoque</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2 border-t">
-            <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
-              Cancelar
-            </Button>
-            <Button 
-              className="bg-primary hover:bg-primary/80" 
+          <div className="flex justify-between gap-2 pt-2 border-t">
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
               disabled={isSubmitting}
-              onClick={handleEditSubmit}
+              onClick={async () => {
+                if (!editingProduct) return
+                if (!window.confirm(`Tem certeza que deseja excluir "${editingProduct.name}"?`)) return
+                setIsSubmitting(true)
+                const result = await deleteProduct(editingProduct.id)
+                if (!result.success) {
+                  toast.error(result.error || "Erro ao excluir produto")
+                  setIsSubmitting(false)
+                  return
+                }
+                toast.success("Produto excluído com sucesso!")
+                setIsEditOpen(false)
+                window.location.reload()
+              }}
             >
-              {isSubmitting ? "Salvando..." : "Salvar Alterações"}
+              <Trash2 className="h-4 w-4 mr-1" />
+              Excluir
             </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                className="bg-primary hover:bg-primary/80" 
+                disabled={isSubmitting}
+                onClick={handleEditSubmit}
+              >
+                {isSubmitting ? "Salvando..." : "Salvar Alterações"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

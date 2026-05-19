@@ -17,7 +17,7 @@ export function getSalesDaysCookie(): number | null {
 
 export function useSalesDaysSync() {
     useEffect(() => {
-        const stored = localStorage.getItem("preferences")
+        const stored = localStorage.getItem("stoqueup_preferences")
         if (stored) {
             try {
                 const prefs = JSON.parse(stored)

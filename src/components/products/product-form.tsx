@@ -9,9 +9,11 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { UploadButton } from "@/lib/uploadthing"
 import { toast } from "sonner"
 import { createProduct } from "@/lib/product-actions"
+import { uploadProductImage } from "@/lib/upload-actions"
+import Image from "next/image"
+import { Loader2, Upload, X } from "lucide-react"
 
 const productSchema = z.object({
   name: z.string().min(2, "O nome deve ter pelo menos 2 caracteres"),
@@ -27,7 +29,10 @@ type ProductFormValues = z.infer<typeof productSchema>
 export function ProductForm() {
   const [imageUrl, setImageUrl] = React.useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [isUploading, setIsUploading] = React.useState(false)
+  const [preview, setPreview] = React.useState<string | null>(null)
   const router = useRouter()
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -40,6 +45,40 @@ export function ProductForm() {
       minParaVenda: 0,
     },
   })
+
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Apenas imagens são permitidas")
+      return
+    }
+
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error("A imagem deve ter no máximo 4MB")
+      return
+    }
+
+    setIsUploading(true)
+    setPreview(URL.createObjectURL(file))
+
+    const formData = new FormData()
+    formData.set("file", file)
+
+    const result = await uploadProductImage(formData)
+
+    if ("url" in result) {
+      setImageUrl(result.url)
+      toast.success("Imagem enviada com sucesso!")
+    } else {
+      toast.error(result.error)
+      setPreview(null)
+    }
+
+    setIsUploading(false)
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
 
   async function onSubmit(data: ProductFormValues) {
     setIsSubmitting(true)
@@ -59,6 +98,8 @@ export function ProductForm() {
     }
   }
 
+  const displayUrl = preview || imageUrl
+
   return (
     <Card className="border-border shadow-sm">
       <CardContent className="p-6">
@@ -71,30 +112,53 @@ export function ProductForm() {
 
             <div className="space-y-2">
               <Label>Imagem do Produto</Label>
-              <div className="flex items-center gap-4 border rounded-lg p-4 bg-muted">
-                {imageUrl ? (
-                  <>
-                    <div className="h-20 w-20 rounded-md bg-muted flex items-center justify-center text-muted-foreground overflow-hidden">
-                      <img src={imageUrl} alt="Produto" className="object-cover w-full h-full" />
-                    </div>
-                    <button type="button" onClick={() => setImageUrl(null)} className="text-destructive hover:bg-destructive/10 px-3 py-1 rounded text-sm">
-                      Remover
+              <div className="flex items-center gap-6 border rounded-lg p-4 bg-muted">
+                {displayUrl ? (
+                  <div className="relative h-28 w-28 shrink-0 rounded-lg overflow-hidden shadow-sm bg-background">
+                    <Image
+                      src={displayUrl}
+                      alt="Produto"
+                      fill
+                      sizes="112px"
+                      className="object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { setImageUrl(null); setPreview(null) }}
+                      className="absolute top-1 right-1 p-0.5 rounded-full bg-destructive/90 text-destructive-foreground hover:bg-destructive transition-colors"
+                    >
+                      <X className="h-3 w-3" />
                     </button>
-                  </>
+                  </div>
                 ) : (
-                  <div className="h-20 w-20 rounded-md bg-muted flex items-center justify-center text-muted-foreground">
-                    Sem Foto
+                  <div className="h-28 w-28 shrink-0 rounded-lg bg-background flex items-center justify-center text-muted-foreground border-2 border-dashed border-border">
+                    <div className="text-center">
+                      <Upload className="h-6 w-6 mx-auto mb-1 text-muted-foreground/50" />
+                      <span className="text-xs">Sem Foto</span>
+                    </div>
                   </div>
                 )}
-                <UploadButton
-                  endpoint="productImage"
-                  onClientUploadComplete={(res) => {
-                    if (res?.[0]) setImageUrl(res[0].url)
-                  }}
-                  onUploadError={(error: Error) => {
-                    alert(`ERROR! ${error.message}`)
-                  }}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                  disabled={isUploading}
                 />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Enviando...</>
+                  ) : (
+                    <><Upload className="h-4 w-4 mr-1" /> {displayUrl ? "Trocar Foto" : "Escolher Foto"}</>
+                  )}
+                </Button>
               </div>
             </div>
 

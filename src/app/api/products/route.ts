@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { products } from "@/db/schema";
+import { products, productionTasks } from "@/db/schema";
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 const createProductSchema = z.object({
@@ -51,6 +52,21 @@ export async function POST(req: NextRequest) {
         createdAt: new Date(),
         updatedAt: new Date(),
     }).returning();
+
+    if (minParaVenda > 0) {
+        await db.insert(productionTasks).values({
+            id: crypto.randomUUID(),
+            productId: product.id,
+            status: "PENDING",
+            quantity: minParaVenda,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        });
+    }
+
+    revalidatePath("/dashboard/products");
+    revalidatePath("/dashboard/production");
+    revalidatePath("/dashboard");
 
     return NextResponse.json(product, { status: 201 });
 }

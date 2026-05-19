@@ -9,6 +9,7 @@ import {
   BarChart3,
   Settings,
 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -22,38 +23,40 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { useAbility } from "@/components/providers/ability-provider"
+import type { Subjects, Actions } from "@/lib/ability"
 
-const data = {
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: LayoutDashboard,
-    },
-    {
-      title: "Vendas",
-      url: "/dashboard/sales",
-      icon: ShoppingCart,
-    },
-    {
-      title: "Produtos",
-      url: "/dashboard/products",
-      icon: Package,
-    },
-    {
-      title: "Produção",
-      url: "/dashboard/production",
-      icon: Factory,
-    },
-    {
-      title: "Indicadores",
-      url: "/dashboard/metrics",
-      icon: BarChart3,
-    },
-  ],
+interface NavItem {
+  title: string
+  url: string
+  icon: LucideIcon
+  subject: Subjects
+  action?: Actions
 }
 
+const navItems: NavItem[] = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, subject: "Dashboard" },
+  { title: "Vendas", url: "/dashboard/sales", icon: ShoppingCart, subject: "Sales" },
+  { title: "Produtos", url: "/dashboard/products", icon: Package, subject: "Products" },
+  { title: "Produção", url: "/dashboard/production", icon: Factory, subject: "Production" },
+  { title: "Indicadores", url: "/dashboard/metrics", icon: BarChart3, subject: "Metrics" },
+]
+
+const footerNavItems: NavItem[] = [
+  { title: "Configurações", url: "/dashboard/settings", icon: Settings, subject: "Settings" },
+]
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const ability = useAbility()
+
+  const visibleNavItems = navItems.filter((item) =>
+    ability.can(item.action ?? "read", item.subject),
+  )
+
+  const visibleFooterItems = footerNavItems.filter((item) =>
+    ability.can(item.action ?? "read", item.subject),
+  )
+
   return (
     <Sidebar collapsible="icon" {...props} className="bg-sidebar">
       <SidebarHeader className="flex-row flex-nowrap items-center gap-2 py-2 w-fit">
@@ -67,7 +70,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {data.navMain.map((item) => (
+              {visibleNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton render={<a href={item.url} />} tooltip={item.title}>
                     <item.icon className="h-4 w-4" />
@@ -79,16 +82,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton render={<a href="/dashboard/settings" />} tooltip="Configurações">
-              <Settings className="h-4 w-4" />
-              <span>Configurações</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
+      {visibleFooterItems.length > 0 && (
+        <SidebarFooter>
+          <SidebarMenu>
+            {visibleFooterItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton render={<a href={item.url} />} tooltip={item.title}>
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.title}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarFooter>
+      )}
       <SidebarRail />
     </Sidebar>
   )

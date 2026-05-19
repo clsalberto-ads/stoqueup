@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, startTransition } from "react"
 import { Bell, BellRing, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -53,8 +53,8 @@ export function NotificationCenter() {
     }
 
     useEffect(() => {
-        loadNotifications()
-        const interval = setInterval(loadNotifications, 30000)
+        startTransition(() => loadNotifications())
+        const interval = setInterval(() => startTransition(() => loadNotifications()), 30000)
         return () => clearInterval(interval)
     }, [])
 

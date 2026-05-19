@@ -122,9 +122,6 @@ export function Calendar({
             const isToday = date.toDateString() === new Date().toDateString()
             const isDisabled = disabled?.(date) || false
 
-            const isRangeStart = mode === "range" && range?.from?.toDateString() === date.toDateString()
-            const isRangeEnd = mode === "range" && range?.to?.toDateString() === date.toDateString()
-
             return (
               <button
                 key={i}

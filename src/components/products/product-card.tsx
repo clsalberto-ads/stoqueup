@@ -34,12 +34,19 @@ export function ProductCard({ product, onEdit }: ProductCardProps) {
 
     return (
         <Card className="overflow-hidden border-border shadow-sm hover:shadow-md transition-all flex flex-col h-full group">
-            <div className="aspect-video relative bg-muted shrink-0">
+            <div className="aspect-[4/3] relative bg-gradient-to-br from-muted to-muted/50 shrink-0">
                 {product.imageUrl ? (
-                    <Image src={product.imageUrl} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <Image
+                        src={product.imageUrl}
+                        alt={product.name}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
                 ) : (
-                    <div className="flex items-center justify-center h-full">
-                        <Package className="h-16 w-16 text-muted-foreground/20" />
+                    <div className="flex flex-col items-center justify-center h-full gap-1">
+                        <Package className="h-12 w-12 text-muted-foreground/30" />
+                        <span className="text-xs text-muted-foreground/40">Sem imagem</span>
                     </div>
                 )}
                 <div className="absolute top-2 right-2">

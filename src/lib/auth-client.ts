@@ -1,7 +1,11 @@
 import { createAuthClient } from "better-auth/react"
+import { organizationClient } from "better-auth/client/plugins"
 
 export const authClient = createAuthClient({
-    baseURL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  baseURL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  plugins: [
+    organizationClient()
+  ]
 })
 
 export async function signInWithEmail(email: string, password: string): Promise<{ error?: { message: string; status: number } }> {
@@ -10,7 +14,7 @@ export async function signInWithEmail(email: string, password: string): Promise<
             email,
             password,
         })
-        
+
         return result as { error?: { message: string; status: number } }
     } catch (err) {
         const message = err instanceof Error ? err.message : "Erro de conexão"

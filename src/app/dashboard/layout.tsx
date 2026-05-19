@@ -8,9 +8,11 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { AbilityProvider } from "@/components/providers/ability-provider"
 import { auth } from "@/lib/auth"
 import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
+import type { UserRole } from "@/lib/ability"
 
 export const dynamic = "force-dynamic"
 
@@ -38,28 +40,32 @@ export default async function DashboardLayout({
     redirect("/login")
   }
 
+  const role = (session.user.role as UserRole) || "user"
+
   return (
     <TooltipProvider>
-      <SidebarProvider defaultOpen={true}>
-        <AppSidebar />
-        <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b bg-background px-4">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="-ml-1" />
-            </div>
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <NotificationCenter />
-              {session?.user ? (
-                <UserMenu user={session.user} />
-              ) : null}
-            </div>
-          </header>
-          <main className="flex-1 p-6 bg-background">
-            {children}
-          </main>
-        </SidebarInset>
-      </SidebarProvider>
+      <AbilityProvider role={role}>
+        <SidebarProvider defaultOpen={true}>
+          <AppSidebar />
+          <SidebarInset>
+            <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b bg-background px-4">
+              <div className="flex items-center gap-2">
+                <SidebarTrigger className="-ml-1" />
+              </div>
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <NotificationCenter />
+                {session?.user ? (
+                  <UserMenu user={session.user} />
+                ) : null}
+              </div>
+            </header>
+            <main className="flex-1 p-6 bg-background">
+              {children}
+            </main>
+          </SidebarInset>
+        </SidebarProvider>
+      </AbilityProvider>
     </TooltipProvider>
   )
 }

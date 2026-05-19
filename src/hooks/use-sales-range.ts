@@ -6,7 +6,7 @@ import { getSalesDaysCookie } from "@/lib/sales-days-cookie"
 function getInitialDaysRange(): number {
     if (typeof window === "undefined") return 30
     
-    const stored = localStorage.getItem("preferences")
+    const stored = localStorage.getItem("stoqueup_preferences")
     if (stored) {
         try {
             const prefs = JSON.parse(stored)
@@ -26,12 +26,12 @@ export function useSalesRange() {
     const [daysRange] = useState(getInitialDaysRange)
 
     useEffect(() => {
-        const stored = localStorage.getItem("preferences")
+        const stored = localStorage.getItem("stoqueup_preferences")
         if (stored) {
             try {
                 const prefs = JSON.parse(stored)
                 if (prefs.salesDaysRange) {
-                    localStorage.setItem("preferences", JSON.stringify({ ...prefs }))
+                    localStorage.setItem("stoqueup_preferences", JSON.stringify({ ...prefs }))
                 }
             } catch {}
         }

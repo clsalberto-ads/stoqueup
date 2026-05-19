@@ -1,12 +1,14 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { getCompanyOverview } from "@/lib/analytics-actions"
-import { StatsGrid, StatCard } from "@/components/ui/stats-card"
+import { getCompanyOverview, getOrgSalesDaysRange } from "@/lib/analytics-actions"
+import { StatsGrid } from "@/components/ui/stats-card"
 import { HealthCard } from "@/components/dashboard/health-card"
 import { TopProductsList } from "@/components/ui/top-products-list"
 
-export default async function DashboardPage({ searchParams }: { searchParams: { days?: string } }) {
-    const daysRange = searchParams.days ? parseInt(searchParams.days, 10) : 30
+export default async function DashboardPage(props: { searchParams: Promise<{ days?: string }> }) {
+    const searchParams = await props.searchParams
+    const orgDays = await getOrgSalesDaysRange()
+    const daysRange = searchParams.days ? parseInt(searchParams.days, 10) : orgDays
     const data = await getCompanyOverview(daysRange)
 
     const stats = [

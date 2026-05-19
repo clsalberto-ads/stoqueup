@@ -1,10 +1,40 @@
 "use server"
 
 import { db } from "@/db";
-import { products, inventoryLogs } from "@/db/schema";
-import { eq, sql, gt, and } from "drizzle-orm";
+import { products, inventoryLogs, organization } from "@/db/schema";
+import { eq, sql, gt, gte, lte, and } from "drizzle-orm";
 import { auth } from "./auth";
 import { headers } from "next/headers";
+
+export async function getOrgSalesDaysRange(): Promise<number> {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session) return 30
+
+  const org = await db.query.organization.findFirst()
+  if (!org?.metadata) return 30
+
+  try {
+    const meta = JSON.parse(org.metadata)
+    return typeof meta.salesDaysRange === "number" ? meta.salesDaysRange : 30
+  } catch {
+    return 30
+  }
+}
+
+export async function updateOrgSalesDaysRange(days: number) {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session) throw new Error("Não autorizado")
+
+  const org = await db.query.organization.findFirst()
+  if (!org) throw new Error("Organização não encontrada")
+
+  const current = org.metadata ? JSON.parse(org.metadata) : {}
+  await db.update(organization)
+    .set({ metadata: JSON.stringify({ ...current, salesDaysRange: days }) })
+    .where(eq(organization.id, org.id))
+
+  return { success: true }
+}
 
 /**
  * Função interna — calcula métricas de um produto sem verificar sessão.
@@ -134,6 +164,42 @@ export async function getCompanyOverview(daysRange: number = 30) {
         sales: Number(row.qty)
     }));
 
+    // Indicadores de estoque
+    const allProductsList = await db.select().from(products);
+    const totalProducts = allProductsList.length;
+    const outOfStock = allProductsList.filter(p => p.currentStock === 0).length;
+    const belowMinStock = allProductsList.filter(p => p.currentStock < p.qtdMinima).length;
+    const totalStockItems = allProductsList.reduce((acc, p) => acc + p.currentStock, 0);
+    const totalStockValue = allProductsList.reduce((acc, p) => acc + p.currentStock * p.price, 0) / 100;
+
+    // Tendência: comparar primeira metade com segunda metade do período
+    const halfPoint = new Date();
+    halfPoint.setDate(halfPoint.getDate() - Math.floor(daysRange / 2));
+
+    const [firstHalf] = await db
+        .select({ total: sql<number>`COALESCE(SUM(ABS(${inventoryLogs.change})), 0)` })
+        .from(inventoryLogs)
+        .where(and(
+            eq(inventoryLogs.type, "SALE"),
+            gte(inventoryLogs.createdAt, cutoffDate),
+            lte(inventoryLogs.createdAt, halfPoint)
+        ));
+
+    const [secondHalf] = await db
+        .select({ total: sql<number>`COALESCE(SUM(ABS(${inventoryLogs.change})), 0)` })
+        .from(inventoryLogs)
+        .where(and(
+            eq(inventoryLogs.type, "SALE"),
+            gt(inventoryLogs.createdAt, halfPoint)
+        ));
+
+    const firstHalfSales = Number(firstHalf?.total ?? 0);
+    const secondHalfSales = Number(secondHalf?.total ?? 0);
+    let trendValue = 0;
+    if (firstHalfSales > 0) {
+        trendValue = Math.round(((secondHalfSales - firstHalfSales) / firstHalfSales) * 100);
+    }
+
     return {
         totalSales30d: totalSales,
         totalRevenue,
@@ -142,6 +208,16 @@ export async function getCompanyOverview(daysRange: number = 30) {
         chartData,
         topProducts: productsWithMetrics
             .sort((a, b) => b.metrics.average30d - a.metrics.average30d)
-            .slice(0, 5)
+            .slice(0, 5),
+        totalProducts,
+        outOfStock,
+        belowMinStock,
+        totalStockItems,
+        totalStockValue,
+        avgDailySales: daysRange > 0 ? Math.round(totalSales / daysRange) : 0,
+        salesTrend: {
+            value: trendValue,
+            isPositive: trendValue >= 0
+        },
     };
 }

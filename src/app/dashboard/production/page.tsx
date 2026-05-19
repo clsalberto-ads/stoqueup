@@ -9,7 +9,8 @@ import ProductionPageClient from "./production-page-client"
 
 const ITEMS_PER_PAGE = 8
 
-export default async function ProductionPage({ searchParams }: { searchParams: { page?: string } }) {
+export default async function ProductionPage(props: { searchParams: Promise<{ page?: string }> }) {
+    const searchParams = await props.searchParams
     const session = await auth.api.getSession({
         headers: await headers()
     })

@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { LogOut, ChevronDown } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
@@ -25,7 +26,7 @@ export function UserMenu({ user }: UserMenuProps) {
       <button className="flex items-center gap-3 py-1.5 pr-2 rounded-lg hover:bg-muted transition-colors">
         <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium">
           {user.image ? (
-            <img src={user.image} alt={displayName} className="h-9 w-9 rounded-full object-cover" />
+            <Image src={user.image} alt={displayName} width={36} height={36} className="h-9 w-9 rounded-full object-cover" />
           ) : (
             <span>{avatarInitials}</span>
           )}

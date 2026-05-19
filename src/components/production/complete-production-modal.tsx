@@ -24,9 +24,8 @@ export function CompleteProductionModal({ task, isOpen, onClose }: CompleteProdu
     const [quantity, setQuantity] = useState(task.plannedQuantity)
     const [isPending, startTransition] = useTransition()
 
-    // Sincroniza quantity com a task atual sempre que a modal abre
     useEffect(() => {
-        if (isOpen) setQuantity(task.plannedQuantity)
+        if (isOpen) startTransition(() => setQuantity(task.plannedQuantity))
     }, [isOpen, task.plannedQuantity])
 
     const handleConfirm = () => {

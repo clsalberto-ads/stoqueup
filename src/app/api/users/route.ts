@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import { db } from "@/db"
-import { user, account } from "@/db/schema"
-import { eq } from "drizzle-orm"
-import { randomUUID } from "crypto"
 
 export async function GET() {
     try {
@@ -14,15 +10,12 @@ export async function GET() {
             return NextResponse.json({ error: "Acesso não autorizado" }, { status: 401 })
         }
 
-        const users = await db.select({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            createdAt: user.createdAt,
-        }).from(user).orderBy(user.createdAt)
+        const result = await auth.api.listUsers({
+            headers: await headers(),
+            query: { limit: 100 },
+        })
 
-        return NextResponse.json({ users })
+        return NextResponse.json({ users: result.users || [] })
     } catch (error) {
         const message = error instanceof Error ? error.message : "Erro desconhecido"
         console.error("Error fetching users:", error)
@@ -57,42 +50,17 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Senha deve ter pelo menos 6 caracteres" }, { status: 400 })
         }
 
-        const emailLower = email.trim().toLowerCase()
-        const existingUser = await db.select().from(user).where(eq(user.email, emailLower)).limit(1)
-        if (existingUser.length > 0) {
-            return NextResponse.json({ error: "Este e-mail já está cadastrado" }, { status: 409 })
-        }
-
-        const userId = randomUUID()
-        const now = new Date()
-        
-        await db.insert(user).values({
-            id: userId,
-            name: name.trim(),
-            email: emailLower,
-            emailVerified: false,
-            createdAt: now,
-            updatedAt: now,
-            role: role === "admin" ? "admin" : "user",
+        const result = await auth.api.createUser({
+            headers: await headers(),
+            body: {
+                email: email.trim().toLowerCase(),
+                name: name.trim(),
+                password: password,
+                role: role === "admin" ? "admin" : "user",
+            }
         })
 
-        await db.insert(account).values({
-            id: randomUUID(),
-            accountId: userId,
-            providerId: "credential",
-            userId: userId,
-            accessToken: null,
-            refreshToken: null,
-            idToken: null,
-            accessTokenExpiresAt: null,
-            refreshTokenExpiresAt: null,
-            scope: null,
-            password: password,
-            createdAt: now,
-            updatedAt: now,
-        })
-
-        return NextResponse.json({ success: true, user: { id: userId, name: name.trim(), email: emailLower, role: role === "admin" ? "admin" : "user" } })
+        return NextResponse.json({ success: true, user: result.user })
     } catch (error) {
         const message = error instanceof Error ? error.message : "Erro interno do servidor"
         console.error("User creation error:", error)

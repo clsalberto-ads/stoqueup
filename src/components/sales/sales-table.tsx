@@ -8,16 +8,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Pagination } from "@/components/ui/pagination"
 import { EmptyState } from "@/components/ui/empty-state"
 
+export type GroupedSaleItem = {
+    id: string
+    productId: string
+    productName: string
+    quantity: number
+    price: number
+    subtotal: number
+}
+
 export type GroupedSale = {
     id: string
     createdAt: Date
-    items: {
-        id: string
-        productName: string
-        quantity: number
-        price: number
-        subtotal: number
-    }[]
+    items: GroupedSaleItem[]
     totalItems: number
     totalValue: number
 }

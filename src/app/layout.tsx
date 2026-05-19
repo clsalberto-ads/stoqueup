@@ -28,12 +28,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
-        />
-      </head>
       <body className={`${raleway.variable} ${nunito.variable} h-full antialiased`}>
         <ThemeProvider>
           {children}

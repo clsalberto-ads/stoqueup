@@ -3,8 +3,10 @@ import { db } from "@/db"
 import { products } from "@/db/schema"
 import { ProductsClient } from "@/components/products/products-client"
 import { getProductMetrics } from "@/lib/analytics-actions"
+import { authorize } from "@/lib/authorize"
 
 export default async function ProductsPage() {
+    await authorize("read", "Products")
   const allProducts = await db.select().from(products)
   
   const productsWithMetrics = await Promise.all(
