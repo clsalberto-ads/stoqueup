@@ -14,7 +14,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ day
     const stats = [
         {
             title: `Estoque`,
-            value: data.totalStockValue,
+            value: data.totalProducts,
             description: "Total em estoque"
         },
         {
