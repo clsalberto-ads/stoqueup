@@ -5,6 +5,14 @@ import { LogOut, ChevronDown } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 
 interface UserMenuProps {
   user: {
@@ -22,46 +30,48 @@ export function UserMenu({ user }: UserMenuProps) {
   const userEmail = user.email || ""
 
   return (
-    <div className="relative group">
-      <button className="flex items-center gap-3 py-1.5 pr-2 rounded-lg hover:bg-muted transition-colors">
-        <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium">
-          {user.image ? (
-            <Image src={user.image} alt={displayName} width={36} height={36} className="h-9 w-9 rounded-full object-cover" />
-          ) : (
-            <span>{avatarInitials}</span>
-          )}
-        </div>
-        <div className="hidden sm:flex flex-col items-start">
-          <span className="text-sm font-medium">{displayName}</span>
-          <span className="text-xs text-muted-foreground">{userEmail}</span>
-        </div>
-        <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
-      </button>
-
-      <div className="absolute right-0 top-full mt-1 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-        <div className="rounded-lg border bg-popover shadow-md p-1">
-          <div className="px-3 py-2 border-b sm:hidden">
-            <p className="font-medium text-sm">{displayName}</p>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="flex items-center gap-3 py-1.5 pr-2 rounded-lg hover:bg-muted transition-colors">
+          <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium shrink-0">
+            {user.image ? (
+              <Image src={user.image} alt={displayName} width={36} height={36} className="h-9 w-9 rounded-full object-cover" />
+            ) : (
+              <span>{avatarInitials}</span>
+            )}
+          </div>
+          <div className="hidden sm:flex flex-col items-start">
+            <span className="text-sm font-medium">{displayName}</span>
+            <span className="text-xs text-muted-foreground">{userEmail}</span>
+          </div>
+          <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col">
+            <p className="text-sm font-medium">{displayName}</p>
             <p className="text-xs text-muted-foreground">{userEmail}</p>
           </div>
-          <button
-            onClick={async () => {
-              await authClient.signOut({
-                fetchOptions: {
-                  onSuccess: () => {
-                    toast.success("Até logo!")
-                    router.push("/login")
-                  }
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="text-destructive focus:text-destructive cursor-pointer"
+          onClick={async () => {
+            await authClient.signOut({
+              fetchOptions: {
+                onSuccess: () => {
+                  toast.success("Até logo!")
+                  router.push("/login")
                 }
-              })
-            }}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive rounded-md hover:bg-destructive/10 transition-colors"
-          >
-            <LogOut className="h-4 w-4" />
-            <span>Sair</span>
-          </button>
-        </div>
-      </div>
-    </div>
+              }
+            })
+          }}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          <span>Sair</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

@@ -13,9 +13,9 @@ export default async function DashboardPage(props: { searchParams: Promise<{ day
 
     const stats = [
         {
-            title: `Estoque`,
+            title: `Produtos`,
             value: data.totalProducts,
-            description: "Total em estoque"
+            description: "Total de produtos cadastrados"
         },
         {
             title: "Produtos Críticos",
