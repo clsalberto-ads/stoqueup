@@ -9,13 +9,13 @@ export default async function DashboardPage(props: { searchParams: Promise<{ day
     const searchParams = await props.searchParams
     const orgDays = await getOrgSalesDaysRange()
     const daysRange = searchParams.days ? parseInt(searchParams.days, 10) : orgDays
-    const data = await getCompanyOverview(daysRange)
+  const data = await getCompanyOverview(daysRange)
 
     const stats = [
         {
-            title: `Receita (${daysRange} dias)`,
-            value: data.totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-            description: "valor acumulado em vendas"
+            title: `Estoque`,
+            value: data.totalStockValue,
+            description: "Total em estoque"
         },
         {
             title: "Produtos Críticos",
