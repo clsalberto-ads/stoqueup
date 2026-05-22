@@ -3,10 +3,12 @@
 import { auth } from "./auth";
 import { headers } from "next/headers";
 import { db } from "@/db";
-import { products, productionTasks, inventoryLogs } from "@/db/schema";
+import { products, productionTasks, inventoryLogs, notifications } from "@/db/schema";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { supabase, PRODUCTS_BUCKET } from "./supabase";
+import { defineAbilityFor } from "./ability";
+import type { UserRole } from "./ability";
 
 export async function createProduct(data: {
     name: string;
@@ -39,17 +41,19 @@ export async function createProduct(data: {
                 minParaVenda: data.minParaVenda,
                 imageUrl: data.imageUrl ?? null,
                 currentStock: 0,
-                statusVenda: true,
+                statusVenda: data.minParaVenda <= 0,
                 createdAt: new Date(),
                 updatedAt: new Date(),
             }).returning();
 
+            // Se minParaVenda > 0 e o estoque inicial é 0, criar tarefa limitada ao máximo
             if (data.minParaVenda > 0) {
+                const initialQuantity = Math.max(1, Math.min(data.minParaVenda, data.qtdMaxima));
                 await tx.insert(productionTasks).values({
                     id: crypto.randomUUID(),
                     productId: product.id,
                     status: "PENDING",
-                    quantity: data.minParaVenda,
+                    quantity: initialQuantity,
                     createdAt: new Date(),
                     updatedAt: new Date(),
                 });
@@ -79,7 +83,8 @@ export async function deleteProduct(productId: string) {
         throw new Error("Não autorizado");
     }
 
-    if (session.user.role !== "admin") {
+    const ability = defineAbilityFor((session.user.role ?? "user") as UserRole);
+    if (!ability.can("delete", "Products")) {
         throw new Error("Apenas administradores podem excluir produtos");
     }
 
@@ -130,7 +135,8 @@ export async function updateProduct(productId: string, data: {
         throw new Error("Não autorizado");
     }
 
-    if (session.user.role !== "admin") {
+    const ability = defineAbilityFor((session.user.role ?? "user") as UserRole);
+    if (!ability.can("update", "Products")) {
         throw new Error("Apenas administradores podem editar produtos");
     }
 
@@ -155,26 +161,42 @@ export async function updateProduct(productId: string, data: {
                     qtdMaxima: data.qtdMaxima,
                     minParaVenda: data.minParaVenda,
                     imageUrl: data.imageUrl ?? null,
-                    statusVenda: data.statusVenda ?? true,
+                    statusVenda: data.statusVenda !== undefined ? data.statusVenda : current.statusVenda,
                     updatedAt: new Date(),
                 })
                 .where(eq(products.id, productId));
 
-            const needed = data.minParaVenda - current.currentStock;
-            if (needed > 0) {
-                await tx.insert(productionTasks).values({
-                    id: crypto.randomUUID(),
-                    productId,
-                    status: "PENDING",
-                    quantity: needed,
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                });
+            // Verificar se já existe tarefa PENDING antes de criar nova
+            const existingTask = await tx
+                .select()
+                .from(productionTasks)
+                .where(and(
+                    eq(productionTasks.productId, productId),
+                    eq(productionTasks.status, "PENDING")
+                ))
+                .limit(1);
+
+            if (existingTask.length === 0) {
+                const needed = Math.max(1, Math.min(
+                    data.minParaVenda - current.currentStock,
+                    data.qtdMaxima - current.currentStock
+                ));
+                if (needed > 0) {
+                    await tx.insert(productionTasks).values({
+                        id: crypto.randomUUID(),
+                        productId,
+                        status: "PENDING",
+                        quantity: needed,
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                    });
+                }
             }
         });
 
         revalidatePath("/dashboard/products");
         revalidatePath("/dashboard/production");
+        revalidatePath("/dashboard/sales");
         revalidatePath("/dashboard");
         return { success: true as const };
     } catch (error) {

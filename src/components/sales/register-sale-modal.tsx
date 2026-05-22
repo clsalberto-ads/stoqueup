@@ -142,8 +142,8 @@ export function RegisterSaleModal({ products }: RegisterSaleModalProps) {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-12 gap-4">
-                                <div className="col-span-7 space-y-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                                <div className="sm:col-span-7 space-y-2">
                                     <Label htmlFor="product">Produto</Label>
                                     <Select
                                         value={selectedProductName}
@@ -159,15 +159,15 @@ export function RegisterSaleModal({ products }: RegisterSaleModalProps) {
                                                 {selectedProductName || "Selecione o produto"}
                                             </SelectValue>
                                         </SelectTrigger>
-                                        <SelectContent className="w-full">
+                                        <SelectContent className="w-full min-w-0">
                                             {products.map((p) => {
                                                 const avail = getAvailableStock(p);
                                                 return (
                                                     <SelectItem key={p.id} value={p.name} disabled={avail <= 0}>
                                                         <div className="flex items-center justify-between w-full gap-4">
-                                                            <span>{p.name}</span>
-                                                            <Badge variant="secondary" className="text-xs">
-                                                                {avail} disponível
+                                                            <span className="truncate">{p.name}</span>
+                                                            <Badge variant="secondary" className="text-xs shrink-0">
+                                                                {avail} disp.
                                                             </Badge>
                                                         </div>
                                                     </SelectItem>
@@ -177,7 +177,7 @@ export function RegisterSaleModal({ products }: RegisterSaleModalProps) {
                                     </Select>
                                 </div>
 
-                                <div className="col-span-3 space-y-2">
+                                <div className="sm:col-span-3 space-y-2">
                                     <Label htmlFor="quantity">Quantidade</Label>
                                     <Input
                                         id="quantity"
@@ -190,8 +190,8 @@ export function RegisterSaleModal({ products }: RegisterSaleModalProps) {
                                     />
                                 </div>
 
-                                <div className="col-span-2">
-                                    <Label>&nbsp;</Label>
+                                <div className="sm:col-span-2">
+                                    <Label className="hidden sm:block">&nbsp;</Label>
                                     <Button
                                         type="button"
                                         variant="secondary"
@@ -199,7 +199,8 @@ export function RegisterSaleModal({ products }: RegisterSaleModalProps) {
                                         onClick={handleAddToCart}
                                         disabled={!selectedProduct || quantity <= 0 || quantity > availableStockForSelected}
                                     >
-                                        <Plus className="h-4 w-4" />
+                                        <Plus className="h-4 w-4 sm:mr-0" />
+                                        <span className="sm:hidden ml-2">Adicionar</span>
                                     </Button>
                                 </div>
                             </div>

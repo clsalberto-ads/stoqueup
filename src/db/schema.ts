@@ -60,7 +60,7 @@ export const products = pgTable("products", {
 	price: integer("price").notNull(), // em centavos
 	imageUrl: text("imageUrl"),
 	qtdMinima: integer("qtdMinima").notNull().default(0),
-	qtdMaxima: integer("qtdMaxima").notNull().default(0),
+	qtdMaxima: integer("qtdMaxima").notNull().default(999999),
 	minParaVenda: integer("minParaVenda").notNull().default(0),
 	currentStock: integer("currentStock").notNull().default(0),
 	statusVenda: boolean("statusVenda").notNull().default(true),

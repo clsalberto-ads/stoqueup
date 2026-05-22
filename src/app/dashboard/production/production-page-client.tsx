@@ -15,6 +15,7 @@ interface TaskData {
     id: string
     productId: string
     productName: string
+    productDescription: string | null
     status: string
     quantity: number
     createdAt: Date
@@ -23,12 +24,13 @@ interface TaskData {
 interface ProductionPageContentProps {
     initialPending: TaskData[]
     initialCompleted: TaskData[]
-    initialProducts: { id: string; name: string; currentStock: number; qtdMaxima: number; price: number }[]
+    initialProducts: { id: string; name: string; description: string | null; currentStock: number; qtdMaxima: number; price: number }[]
     totalCompletedCount: number
     isAdmin: boolean
+    pendingQtyByProduct: Record<string, number>
 }
 
-function ProductionPageContent({ initialPending, initialCompleted, initialProducts, totalCompletedCount, isAdmin }: ProductionPageContentProps) {
+function ProductionPageContent({ initialPending, initialCompleted, initialProducts, totalCompletedCount, isAdmin, pendingQtyByProduct }: ProductionPageContentProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
     
@@ -37,14 +39,14 @@ function ProductionPageContent({ initialPending, initialCompleted, initialProduc
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-foreground">Gestão de Produção</h1>
                     <p className="text-muted-foreground mt-2">
                         Acompanhe as ordens de reposição e gerencie o fluxo de produção.
                     </p>
                 </div>
-                {isAdmin && <CreateTaskModal products={initialProducts} />}
+                {isAdmin && <CreateTaskModal products={initialProducts} pendingQtyByProduct={pendingQtyByProduct} />}
             </div>
 
             <Tabs defaultValue="active" className="w-full">
@@ -123,7 +125,7 @@ function ProductionPageContent({ initialPending, initialCompleted, initialProduc
     )
 }
 
-export default function ProductionPageClient({ initialPending, initialCompleted, initialProducts, totalCompletedCount, isAdmin }: ProductionPageContentProps) {
+export default function ProductionPageClient({ initialPending, initialCompleted, initialProducts, totalCompletedCount, isAdmin, pendingQtyByProduct }: ProductionPageContentProps) {
     return (
         <Suspense fallback={<div className="flex items-center justify-center p-8">Carregando...</div>}>
             <ProductionPageContent 
@@ -132,6 +134,7 @@ export default function ProductionPageClient({ initialPending, initialCompleted,
                 initialProducts={initialProducts}
                 totalCompletedCount={totalCompletedCount}
                 isAdmin={isAdmin}
+                pendingQtyByProduct={pendingQtyByProduct}
             />
         </Suspense>
     )

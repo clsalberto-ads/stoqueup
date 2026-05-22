@@ -27,8 +27,8 @@ export const PRODUCT_STATUS: Record<ProductStatus, ProductStatusConfig> = {
         label: 'Crítico',
         badge: 'destructive',
         textColor: 'text-destructive',
-        bgColor: 'bg-destructive/8',
-        borderColor: 'border-destructive/20',
+        bgColor: 'bg-destructive/15',
+        borderColor: 'border-destructive/25',
         iconColor: 'text-destructive',
         icon: AlertCircle
     },
@@ -36,8 +36,8 @@ export const PRODUCT_STATUS: Record<ProductStatus, ProductStatusConfig> = {
         label: 'Atenção',
         badge: 'warning',
         textColor: 'text-warning',
-        bgColor: 'bg-warning/8',
-        borderColor: 'border-warning/20',
+        bgColor: 'bg-warning/15',
+        borderColor: 'border-warning/25',
         iconColor: 'text-warning',
         icon: AlertTriangle
     },
@@ -45,8 +45,8 @@ export const PRODUCT_STATUS: Record<ProductStatus, ProductStatusConfig> = {
         label: 'Saudável',
         badge: 'success',
         textColor: 'text-success',
-        bgColor: 'bg-success/8',
-        borderColor: 'border-success/20',
+        bgColor: 'bg-success/15',
+        borderColor: 'border-success/25',
         iconColor: 'text-success',
         icon: CheckCircle
     }

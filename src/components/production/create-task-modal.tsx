@@ -14,19 +14,22 @@ interface CreateTaskModalProps {
     products: {
         id: string
         name: string
+        description?: string | null
         currentStock: number
         qtdMaxima: number
     }[]
+    pendingQtyByProduct: Record<string, number>
 }
 
-export function CreateTaskModal({ products }: CreateTaskModalProps) {
+export function CreateTaskModal({ products, pendingQtyByProduct }: CreateTaskModalProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [selectedProductId, setSelectedProductId] = useState("")
     const [quantity, setQuantity] = useState(0)
     const [isPending, startTransition] = useTransition()
 
     const selectedProduct = products.find(p => p.id === selectedProductId)
-    const maxAllowed = selectedProduct ? selectedProduct.qtdMaxima - selectedProduct.currentStock : 0
+    const pendingQty = selectedProduct ? (pendingQtyByProduct[selectedProduct.id] || 0) : 0
+    const maxAllowed = selectedProduct ? Math.max(0, selectedProduct.qtdMaxima - selectedProduct.currentStock - pendingQty) : 0
 
     const handleConfirm = () => {
         if (!selectedProductId || quantity <= 0) {
@@ -67,17 +70,44 @@ export function CreateTaskModal({ products }: CreateTaskModalProps) {
                     <div className="space-y-2">
                         <Label htmlFor="product">Produto</Label>
                         <Select onValueChange={(val) => setSelectedProductId(val ?? "")} value={selectedProductId}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Selecione o produto" />
+                            <SelectTrigger className="!h-auto min-h-9 !w-full">
+                                <SelectValue placeholder="Selecione o produto" className="!line-clamp-none items-start">
+                                    {(value: string | null) => {
+                                        if (!value) return <span className="text-muted-foreground">Selecione o produto</span>;
+                                        const product = products.find(p => p.id === value);
+                                        if (!product) return null;
+                                        return (
+                                            <div className="flex flex-col items-start gap-0 leading-tight">
+                                                <span className="text-sm font-medium">{product.name}</span>
+                                                {product.description && (
+                                                    <span className="text-xs text-muted-foreground line-clamp-1">{product.description}</span>
+                                                )}
+                                            </div>
+                                        );
+                                    }}
+                                </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                                 {products.map((p) => (
                                     <SelectItem key={p.id} value={p.id}>
-                                        {p.name} (Estoque: {p.currentStock})
+                                        <div className="flex flex-col gap-0.5 py-0.5 leading-tight">
+                                            <span className="font-medium text-sm">{p.name}</span>
+                                            {p.description && (
+                                                <span className="text-xs text-muted-foreground line-clamp-1">{p.description}</span>
+                                            )}
+                                        </div>
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
+                        {selectedProduct && (
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                <span>Estoque atual: <span className="font-semibold text-foreground">{selectedProduct.currentStock}</span></span>
+                                {pendingQty > 0 && (
+                                    <span>Em produção: <span className="font-semibold text-foreground">{pendingQty}</span></span>
+                                )}
+                            </div>
+                        )}
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="quantity">Quantidade (Máx: {maxAllowed})</Label>

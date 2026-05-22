@@ -26,7 +26,7 @@ interface ProductCardProps {
     }) => void
 }
 
-const infoBoxStyles = "flex flex-col items-center justify-center p-2 rounded-lg bg-muted/50 text-center min-w-[70px]"
+const infoBoxStyles = "flex flex-col items-center justify-center p-2 rounded-lg bg-muted text-center min-w-[70px]"
 
 export function ProductCard({ product, onEdit }: ProductCardProps) {
     const status = PRODUCT_STATUS[product.metrics.status]
@@ -55,11 +55,11 @@ export function ProductCard({ product, onEdit }: ProductCardProps) {
                     </Badge>
                 </div>
                 {onEdit && (
-                    <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-2 left-2 opacity-70 hover:opacity-100 transition-opacity max-sm:opacity-100">
                         <Button 
                             variant="secondary" 
                             size="sm" 
-                            className="h-8 w-8 p-0"
+                            className="h-8 w-8 p-0 shadow-sm"
                             onClick={() => onEdit(product)}
                         >
                             <Pencil className="h-4 w-4" />
@@ -79,7 +79,7 @@ export function ProductCard({ product, onEdit }: ProductCardProps) {
                     {product.description || "Produto de qualidade"}
                 </p>
 
-                <div className="grid grid-cols-4 gap-2 mt-auto">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-auto">
                     <div className={infoBoxStyles}>
                         <span className="text-xs text-muted-foreground">Estoque</span>
                         <span className="text-sm font-bold">{product.currentStock}</span>

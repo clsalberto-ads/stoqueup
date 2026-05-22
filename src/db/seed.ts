@@ -19,9 +19,9 @@ import { eq } from "drizzle-orm";
 const ORGANIZATION = { name: "StoqueUp", slug: "stoqueup" }
 
 const USERS = [
-  { email: "admin@stoqueup.com.br", password: "admin123", name: "Administrador", role: "admin", orgRole: "owner" },
-  { email: "manager@stoqueup.com.br", password: "manager123", name: "Gerente", role: "manager", orgRole: "admin" },
-  { email: "user@stoqueup.com.br", password: "user1234", name: "Usuário de Produção", role: "user", orgRole: "member" },
+  { email: "admin@stoqueup.com.br", password: "password123", name: "Administrador", role: "admin", orgRole: "owner" },
+  { email: "manager@stoqueup.com.br", password: "password123", name: "Gerente", role: "manager", orgRole: "admin" },
+  { email: "user@stoqueup.com.br", password: "password123", name: "Usuário de Produção", role: "user", orgRole: "member" },
 ]
 
 async function seed() {
@@ -108,6 +108,35 @@ async function seed() {
     })
 
     console.log(`   ➕ ${u.email} adicionado como "${u.orgRole}" na organização.`);
+  }
+
+  // Inserir produtos de exemplo
+  console.log("📦 Criando produtos de exemplo...");
+
+  const productsData = [
+    { name: "Arroz 5kg", description: "Arroz branco tipo 1", price: 2500, qtdMinima: 10, qtdMaxima: 100, minParaVenda: 5, currentStock: 20 },
+    { name: "Feijão 1kg", description: "Feijão carioca", price: 899, qtdMinima: 20, qtdMaxima: 200, minParaVenda: 10, currentStock: 35 },
+    { name: "Óleo de Soja 900ml", description: "Óleo de cozinha", price: 799, qtdMinima: 15, qtdMaxima: 0, minParaVenda: 8, currentStock: 50 },
+    { name: "Produto Sem Limite", description: "Produto com qtdMaxima=0 (sem limite de produção)", price: 1500, qtdMinima: 5, qtdMaxima: 0, minParaVenda: 3, currentStock: 10 },
+    { name: "Produto Bloqueado", description: "Produto com statusVenda=false (sem estoque)", price: 999, qtdMinima: 10, qtdMaxima: 50, minParaVenda: 5, currentStock: 2 },
+  ];
+
+  for (const p of productsData) {
+    const productId = crypto.randomUUID();
+    await db.insert(products).values({
+      id: productId,
+      name: p.name,
+      description: p.description,
+      price: p.price,
+      qtdMinima: p.qtdMinima,
+      qtdMaxima: p.qtdMaxima,
+      minParaVenda: p.minParaVenda,
+      currentStock: p.currentStock,
+      statusVenda: p.currentStock >= p.minParaVenda,
+      createdAt: now,
+      updatedAt: now,
+    });
+    console.log(`   ✅ ${p.name} (estoque: ${p.currentStock}, venda: ${p.currentStock >= p.minParaVenda ? "liberado" : "bloqueado"})`);
   }
 
   console.log("🚀 Seed concluído!");

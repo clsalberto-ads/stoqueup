@@ -105,9 +105,9 @@ export function MetricsContent({ data }: { data: MetricsData }) {
                                 <span
                                     className={cn(
                                         "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium",
-                                        data.salesTrend.isPositive
-                                            ? "bg-emerald-500/10 text-emerald-600"
-                                            : "bg-destructive/10 text-destructive"
+                                    data.salesTrend.isPositive
+                                        ? "bg-success/15 text-success"
+                                        : "bg-destructive/10 text-destructive"
                                     )}
                                 >
                                     {data.salesTrend.isPositive ? "↑" : "↓"} {Math.abs(data.salesTrend.value)}%
@@ -150,7 +150,7 @@ export function MetricsContent({ data }: { data: MetricsData }) {
                         <StockRow
                             label="Abaixo do mínimo"
                             value={data.belowMinStock}
-                            highlight={data.belowMinStock > 0 ? "text-amber-600" : undefined}
+                            highlight={data.belowMinStock > 0 ? "text-warning" : undefined}
                         />
                         <StockRow
                             label="Zerados"

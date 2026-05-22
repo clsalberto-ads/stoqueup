@@ -223,18 +223,18 @@ export function SettingsTabs({ user, organization }: { user: UserListItem, organ
             </Dialog>
 
             <Tabs defaultValue="profile" className="w-full">
-                <TabsList className="mb-6 bg-muted p-1 grid grid-cols-4 w-full max-w-lg">
-                    <TabsTrigger value="profile" className="gap-2">
-                        <User className="h-4 w-4" /> Perfil
+                <TabsList className="mb-6 bg-muted p-1 grid grid-cols-2 sm:grid-cols-4 w-full max-w-lg">
+                    <TabsTrigger value="profile" className="gap-2 text-xs sm:text-sm">
+                        <User className="h-4 w-4 shrink-0" /> <span className="truncate">Perfil</span>
                     </TabsTrigger>
-                    <TabsTrigger value="organization" className="gap-2">
-                        <Building2 className="h-4 w-4" /> Empresa
+                    <TabsTrigger value="organization" className="gap-2 text-xs sm:text-sm">
+                        <Building2 className="h-4 w-4 shrink-0" /> <span className="truncate">Empresa</span>
                     </TabsTrigger>
-                    <TabsTrigger value="preferences" className="gap-2">
-                        <Settings className="h-4 w-4" /> Sistema
+                    <TabsTrigger value="preferences" className="gap-2 text-xs sm:text-sm">
+                        <Settings className="h-4 w-4 shrink-0" /> <span className="truncate">Sistema</span>
                     </TabsTrigger>
-                    <TabsTrigger value="users" className="gap-2">
-                        <Shield className="h-4 w-4" /> Usuários
+                    <TabsTrigger value="users" className="gap-2 text-xs sm:text-sm">
+                        <Shield className="h-4 w-4 shrink-0" /> <span className="truncate">Usuários</span>
                     </TabsTrigger>
                 </TabsList>
                 
@@ -401,7 +401,7 @@ export function SettingsTabs({ user, organization }: { user: UserListItem, organ
                                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                                 </div>
                             ) : (
-                                <div className="border rounded-lg overflow-hidden">
+                                <div className="border rounded-lg overflow-x-auto">
                                     <table className="w-full text-sm text-left">
                                         <thead className="bg-muted text-muted-foreground border-b">
                                             <tr>

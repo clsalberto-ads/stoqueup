@@ -97,11 +97,11 @@ export function SalesTable({
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="text-muted-foreground hover:text-warning hover:bg-warning/10"
+                                                        className="text-muted-foreground hover:text-foreground hover:bg-muted"
                                                         onClick={() => onEditSale(sale)}
                                                     >
-                                                        <Pencil className="h-4 w-4 mr-1" />
-                                                        Editar
+                                                        <Pencil className="h-4 w-4 sm:mr-1" />
+                                                        <span className="hidden sm:inline">Editar</span>
                                                     </Button>
                                                 )}
                                                 <Button
@@ -110,8 +110,8 @@ export function SalesTable({
                                                     className="text-muted-foreground hover:text-primary hover:bg-muted"
                                                     onClick={() => setSelectedSale(sale)}
                                                 >
-                                                    <Eye className="h-4 w-4 mr-2" />
-                                                    Ver Detalhes
+                                                    <Eye className="h-4 w-4 sm:mr-2" />
+                                                    <span className="hidden sm:inline">Ver Detalhes</span>
                                                 </Button>
                                             </div>
                                         </td>

@@ -1,0 +1,1 @@
+ALTER TABLE "products" ALTER COLUMN "qtdMaxima" SET DEFAULT 999999;

@@ -4,7 +4,7 @@ test('login page loads correctly', async ({ page }) => {
   await page.goto('/login');
   
   // Verificar se o título do sistema aparece
-  await expect(page.locator('h1')).toContainText('StoqueUp');
+  await expect(page.getByRole('heading', { name: /StoqueUp/i })).toBeVisible();
   
   // Verificar se o formulário de login está presente
   await expect(page.locator('button[type="submit"]')).toBeVisible();

@@ -11,9 +11,13 @@ const createProductSchema = z.object({
     description: z.string().optional(),
     price: z.number().min(0),
     qtdMinima: z.number().min(0),
-    qtdMaxima: z.number().min(0),
+    qtdMaxima: z.number().min(1),
     minParaVenda: z.number().min(0),
     imageUrl: z.string().url().nullable().optional(),
+}).refine(d => d.qtdMinima <= d.minParaVenda, {
+    message: "A quantidade mínima não pode ser maior que o mínimo para venda",
+}).refine(d => d.minParaVenda <= d.qtdMaxima, {
+    message: "O mínimo para venda não pode ser maior que a quantidade máxima",
 });
 
 export async function POST(req: NextRequest) {
@@ -38,35 +42,40 @@ export async function POST(req: NextRequest) {
     // Converte preço de reais para centavos
     const priceInCents = Math.round(price * 100);
 
-    const [product] = await db.insert(products).values({
-        id: crypto.randomUUID(),
-        name,
-        description: description ?? null,
-        price: priceInCents,
-        qtdMinima,
-        qtdMaxima,
-        minParaVenda,
-        imageUrl: imageUrl ?? null,
-        currentStock: 0,
-        statusVenda: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    }).returning();
-
-    if (minParaVenda > 0) {
-        await db.insert(productionTasks).values({
+    const result = await db.transaction(async (tx) => {
+        const [product] = await tx.insert(products).values({
             id: crypto.randomUUID(),
-            productId: product.id,
-            status: "PENDING",
-            quantity: minParaVenda,
+            name,
+            description: description ?? null,
+            price: priceInCents,
+            qtdMinima,
+            qtdMaxima,
+            minParaVenda,
+            imageUrl: imageUrl ?? null,
+            currentStock: 0,
+            statusVenda: minParaVenda <= 0,
             createdAt: new Date(),
             updatedAt: new Date(),
-        });
-    }
+        }).returning();
+
+        if (minParaVenda > 0) {
+            const initialQuantity = Math.max(1, Math.min(minParaVenda, qtdMaxima));
+            await tx.insert(productionTasks).values({
+                id: crypto.randomUUID(),
+                productId: product.id,
+                status: "PENDING",
+                quantity: initialQuantity,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+        }
+
+        return product;
+    });
 
     revalidatePath("/dashboard/products");
     revalidatePath("/dashboard/production");
     revalidatePath("/dashboard");
 
-    return NextResponse.json(product, { status: 201 });
+    return NextResponse.json(result, { status: 201 });
 }

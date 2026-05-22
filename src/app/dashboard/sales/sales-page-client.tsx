@@ -25,20 +25,36 @@ function SalesPageContent({ initialSales, initialProducts }: SalesPageContentPro
     const [editedItems, setEditedItems] = useState<GroupedSale['items']>([])
     const [isPending, startTransition] = useTransition()
 
+    // Mapa produto → estoque atual para validação na edição
+    const productStockMap = new Map(initialProducts.map(p => [p.id, p.currentStock]))
+
     const handleEditSale = (sale: GroupedSale) => {
         setEditingSale(sale)
         setEditedItems([...sale.items])
         setIsEditing(true)
     }
 
+    const getMaxItemQuantity = (productId: string): number => {
+        if (!editingSale) return 0
+        const originalItem = editingSale.items.find(i => i.productId === productId)
+        const currentStock = productStockMap.get(productId) ?? 0
+        return (originalItem?.quantity ?? 0) + currentStock
+    }
+
     const handleUpdateItemQuantity = (itemId: string, newQuantity: number) => {
         if (newQuantity <= 0) {
             setEditedItems(prev => prev.filter(item => item.id !== itemId))
-        } else {
-            setEditedItems(prev =>
-                prev.map(item => item.id === itemId ? { ...item, quantity: newQuantity, subtotal: newQuantity * item.price } : item)
-            )
+            return
         }
+
+        setEditedItems(prev =>
+            prev.map(item => {
+                if (item.id !== itemId) return item
+                const maxQty = getMaxItemQuantity(item.productId)
+                const clamped = Math.min(newQuantity, maxQty)
+                return { ...item, quantity: clamped, subtotal: clamped * item.price }
+            })
+        )
     }
 
     const handleSaveEdit = () => {
@@ -93,34 +109,45 @@ function SalesPageContent({ initialSales, initialProducts }: SalesPageContentPro
 
                     <div className="space-y-3 py-2">
                         <div className="space-y-2">
-                            {editedItems.map((item) => (
-                                <div key={item.id} className="flex items-center gap-3 p-2 rounded-md border bg-background text-sm">
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-medium truncate">{item.productName}</p>
-                                        <p className="text-xs text-muted-foreground">
-                                            {(item.price / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/un
-                                        </p>
+                            {editedItems.map((item) => {
+                                const maxQty = getMaxItemQuantity(item.productId)
+                                const atMax = item.quantity >= maxQty
+                                return (
+                                    <div key={item.id} className="flex items-center gap-3 p-2 rounded-md border bg-background text-sm">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium truncate">{item.productName}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {(item.price / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/un
+                                            </p>
+                                            {editingSale && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Estoque disp.: {productStockMap.get(item.productId) ?? 0}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <Button
+                                                variant="outline"
+                                                size="icon-sm"
+                                                className="h-7 w-7"
+                                                disabled={item.quantity <= 1}
+                                                onClick={() => handleUpdateItemQuantity(item.id, item.quantity - 1)}
+                                            >-</Button>
+                                            <span className="w-8 text-center font-medium">{item.quantity}</span>
+                                            <Button
+                                                variant="outline"
+                                                size="icon-sm"
+                                                className="h-7 w-7"
+                                                disabled={atMax}
+                                                onClick={() => handleUpdateItemQuantity(item.id, item.quantity + 1)}
+                                            >+</Button>
+                                        </div>
+                                        <span className="font-semibold text-primary w-20 text-right shrink-0">
+                                            {(item.subtotal / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                        </span>
                                     </div>
-                                    <div className="flex items-center gap-2 shrink-0">
-                                        <Button
-                                            variant="outline"
-                                            size="icon-sm"
-                                            className="h-7 w-7"
-                                            onClick={() => handleUpdateItemQuantity(item.id, item.quantity - 1)}
-                                        >-</Button>
-                                        <span className="w-8 text-center font-medium">{item.quantity}</span>
-                                        <Button
-                                            variant="outline"
-                                            size="icon-sm"
-                                            className="h-7 w-7"
-                                            onClick={() => handleUpdateItemQuantity(item.id, item.quantity + 1)}
-                                        >+</Button>
-                                    </div>
-                                    <span className="font-semibold text-primary w-20 text-right shrink-0">
-                                        {(item.subtotal / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                                    </span>
-                                </div>
-                            ))}
+                                )
+                            })}
                         </div>
 
                         <div className="flex justify-between items-center p-3 bg-muted rounded-md border border-border">

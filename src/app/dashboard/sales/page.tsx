@@ -118,6 +118,7 @@ export default async function SalesPage() {
             price: products.price,
         })
         .from(products)
+        .where(eq(products.statusVenda, true))
         .orderBy(products.name)
 
     return (

@@ -27,12 +27,15 @@ export function defineAbilityFor(role: UserRole) {
             can("read", "Dashboard")
             can("manage", "Sales")
             can("manage", "Products")
+            can("manage", "Production")
             can("read", "Metrics")
+            can("read", "Settings")
             break
 
         case "user":
             can("read", "Dashboard")
             can("manage", "Production")
+            can("read", "Settings")
             break
     }
 

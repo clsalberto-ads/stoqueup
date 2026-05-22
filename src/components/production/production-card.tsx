@@ -14,6 +14,7 @@ interface ProductionCardProps {
         id: string
         productId: string
         productName: string
+        productDescription?: string | null
         status: "PENDING" | "IN_PROGRESS" | "COMPLETED"
         quantity: number
         createdAt: Date
@@ -78,7 +79,11 @@ export function ProductionCard({ task }: ProductionCardProps) {
             </CardHeader>
             
             <CardContent className="pt-0 flex-1">
-                <h3 className="font-semibold text-lg text-foreground mb-3">{task.productName}</h3>
+                <h3 className="font-semibold text-lg text-foreground">{task.productName}</h3>
+                {task.productDescription && (
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3 mt-1">{task.productDescription}</p>
+                )}
+                {!task.productDescription && <div className="mb-3" />}
                 
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -110,7 +115,7 @@ export function ProductionCard({ task }: ProductionCardProps) {
                     </Button>
                 )}
                 {task.status === "COMPLETED" && (
-                    <div className="w-full py-2 text-center text-sm font-medium text-emerald-600 flex items-center justify-center gap-1 bg-emerald-50 rounded-lg">
+                    <div className="w-full py-2 text-center text-sm font-medium text-success flex items-center justify-center gap-1 bg-success/15 rounded-lg">
                         <CheckCircle className="h-4 w-4" />
                         Concluído
                     </div>

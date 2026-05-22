@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { getSalesDaysCookie } from "@/lib/sales-days-cookie"
 
 function getInitialDaysRange(): number {
@@ -24,18 +24,5 @@ function getInitialDaysRange(): number {
 
 export function useSalesRange() {
     const [daysRange] = useState(getInitialDaysRange)
-
-    useEffect(() => {
-        const stored = localStorage.getItem("stoqueup_preferences")
-        if (stored) {
-            try {
-                const prefs = JSON.parse(stored)
-                if (prefs.salesDaysRange) {
-                    localStorage.setItem("stoqueup_preferences", JSON.stringify({ ...prefs }))
-                }
-            } catch {}
-        }
-    }, [])
-
     return daysRange
 }

@@ -25,6 +25,7 @@ interface Notification {
 export function NotificationCenter() {
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [loading, setLoading] = useState(true)
+    const [isOpen, setIsOpen] = useState(false)
 
     const loadNotifications = async () => {
         setLoading(true)
@@ -39,6 +40,8 @@ export function NotificationCenter() {
         }
     }
 
+    const unreadCount = notifications.filter(n => !n.isRead).length
+
     const handleMarkAsRead = async (id: string) => {
         try {
             await fetch("/api/notifications", {
@@ -46,7 +49,10 @@ export function NotificationCenter() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id })
             })
+            const targetWasUnread = notifications.find(n => n.id === id)?.isRead === false
+            const wasLastUnread = targetWasUnread && unreadCount <= 1
             setNotifications(prev => prev.filter(n => n.id !== id))
+            if (wasLastUnread) setIsOpen(false)
         } catch (err) {
             console.error("Error marking as read:", err)
         }
@@ -58,10 +64,8 @@ export function NotificationCenter() {
         return () => clearInterval(interval)
     }, [])
 
-    const unreadCount = notifications.filter(n => !n.isRead).length
-
     return (
-        <DropdownMenu>
+        <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <DropdownMenuTrigger asChild>
                 <Button 
                     variant="outline" 
@@ -106,7 +110,7 @@ export function NotificationCenter() {
                             <DropdownMenuItem 
                                 key={n.id} 
                                 className="flex flex-col items-start gap-1 p-3 cursor-pointer"
-                                onClick={() => handleMarkAsRead(n.id)}
+                                onSelect={(e) => { e.preventDefault(); handleMarkAsRead(n.id); }}
                             >
                                 <div className="flex items-center gap-2 w-full">
                                     {!n.isRead && (

@@ -14,6 +14,7 @@ interface CompleteProductionModalProps {
         id: string
         productId: string
         productName: string
+        productDescription?: string | null
         plannedQuantity: number
     }
     isOpen: boolean
@@ -46,7 +47,7 @@ export function CompleteProductionModal({ task, isOpen, onClose }: CompleteProdu
                 <DialogHeader>
                     <DialogTitle>Concluir Produção</DialogTitle>
                     <DialogDescription>
-                        Confirme a quantidade real produzida para <strong>{task.productName}</strong>.
+                        Confirme a quantidade real produzida para <strong>{task.productName}</strong>{task.productDescription && <span className="text-muted-foreground"> — {task.productDescription}</span>}.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">

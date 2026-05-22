@@ -192,12 +192,14 @@
     text-wrap: balance;
   }
 
+  /* text-warning e text-success: mesclam a cor semântica com o foreground
+     para garantir legibilidade em qualquer fundo (tanto claro quanto escuro) */
   .text-warning {
-    color: var(--warning);
+    color: color-mix(in srgb, var(--warning) 35%, var(--foreground) 65%);
   }
 
   .text-success {
-    color: var(--success);
+    color: color-mix(in srgb, var(--success) 45%, var(--foreground) 55%);
   }
 
   .bg-warning\/15 {
@@ -242,5 +244,21 @@
 
   .bg-destructive\/8 {
     background-color: color-mix(in srgb, var(--destructive) 8%, transparent);
+  }
+
+  .bg-destructive\/15 {
+    background-color: color-mix(in srgb, var(--destructive) 15%, transparent);
+  }
+
+  .border-destructive\/25 {
+    border-color: color-mix(in srgb, var(--destructive) 25%, transparent);
+  }
+
+  .border-warning\/25 {
+    border-color: color-mix(in srgb, var(--warning) 25%, transparent);
+  }
+
+  .border-success\/25 {
+    border-color: color-mix(in srgb, var(--success) 25%, transparent);
   }
 }

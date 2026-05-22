@@ -19,9 +19,15 @@ const productSchema = z.object({
   name: z.string().min(2, "O nome deve ter pelo menos 2 caracteres"),
   description: z.string().optional(),
   price: z.number().min(0, "O preço deve ser positivo"),
-  qtdMinima: z.number().min(0),
-  qtdMaxima: z.number().min(0),
-  minParaVenda: z.number().min(0),
+  qtdMinima: z.number().min(0, "Deve ser positivo"),
+  qtdMaxima: z.number().min(1, "Deve ser pelo menos 1"),
+  minParaVenda: z.number().min(0, "Deve ser positivo"),
+}).refine(d => d.qtdMinima <= d.minParaVenda, {
+  message: "A quantidade mínima não pode ser maior que o mínimo para venda",
+  path: ["qtdMinima"],
+}).refine(d => d.minParaVenda <= d.qtdMaxima, {
+  message: "O mínimo para venda não pode ser maior que a quantidade máxima",
+  path: ["minParaVenda"],
 })
 
 type ProductFormValues = z.infer<typeof productSchema>
